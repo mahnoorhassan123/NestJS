@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 
@@ -7,7 +7,7 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Post()
-  create(@Body() userData: Partial<User>) {
+  create(@Body() userData: User) {
     return this.userService.create(userData);
   }
 
@@ -20,4 +20,14 @@ export class UserController {
   findOne(@Param('id') id: number) {
     return this.userService.findOne(id);
   }
+
+  @Patch(':id')
+  update(@Param('id') id: number, @Body() userData: Partial<User>) {
+  return this.userService.update(id, userData);
+}
+
+  @Delete(':id')
+  remove(@Param('id') id: number) {
+  return this.userService.remove(id);
+}
 }
