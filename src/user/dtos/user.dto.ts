@@ -4,9 +4,15 @@ import {
   IsOptional,
   IsBoolean,
   IsInt,
-  MinLength,
+  MinLength, IsNotEmpty, Matches, IsEnum
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export enum UserRole {
+  USER = 'User',
+  ADMIN = 'Admin',
+  EXTERNAL = 'External',
+}
 
 export class CreateUserDto {
   @IsOptional()
@@ -19,12 +25,21 @@ export class CreateUserDto {
   @IsString()
   lastName: string;
 
-  @IsEmail()
+  @IsNotEmpty({ message: 'Email is empty' })
+  @IsEmail({}, { message: 'Email must be in valid format' })
   email: string;
 
   @IsString()
   @MinLength(6)
   password: string;
+
+  @IsNotEmpty({ message: 'Last Name is empty' })
+  @Matches(/^[a-zA-Z ]+$/, { message: 'Special characters not allowed in Last Name' })
+  lastname: string;
+
+  @IsNotEmpty({ message: 'Please select a user role' })
+  @IsEnum(UserRole, { message: 'Invalid user role selected' })
+  userRole: UserRole;
 
   @IsString()
   userType: 'admin' | 'user' | 'external';

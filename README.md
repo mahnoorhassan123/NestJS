@@ -96,3 +96,88 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+### Features and Modules
+This project includes a fully functional User module built with NestJS, Prisma ORM, and MySQL. It includes:
+
+## User Module Features
+- Create, Read, Update users
+- Secure password hashing with bcryptjs
+- Email verification system with unique token
+- Email notifications via nodemailer
+- Active/inactive user flag
+- Role-based users: USER, ADMIN, EXTERNAL
+- Input validation using class-validator
+- Middleware for route authentication (via AuthMiddleware)
+
+
+## Folder Structure
+src/
+├── user/
+│ ├── controllers/
+│ │ └── user.controller.ts
+│ ├── services/
+│ │ └── user.service.ts
+│ ├── dtos/
+│ │ └── user.dto.ts
+│ ├── entities/
+│ │ └── user.entity.ts
+│ ├── helpers/
+│ │ └── mail.helper.ts
+│ ├── mappers/
+│ │ └── user.mapper.ts
+│ └── user.module.ts
+├── prisma/
+│ ├── prisma.module.ts
+│ ├── prisma.service.ts
+│ └── schema.prisma
+├── common/
+│ └── middleware/
+│ └── auth.middleware.ts
+├── app.module.ts
+├── main.ts
+
+
+## How It Works
+### Create User Flow
+1. Validates input using DTOs.
+2. Checks if email already exists in DB.
+3. Hashes the password and generates a token.
+4. Saves the user to DB with Prisma.
+5. Sends a verification email using Nodemailer.
+
+### Email Format
+- Welcome, Reset Password, and Account Lock emails include:
+- First name and last name
+- Secure link to verify or reset password
+- Custom subject line
+
+### Auth Middleware
+- Used to secure routes such as /user using a custom AuthMiddleware.
+
+
+## Test Cases Covered 
+First name, last name, email and role validations
+Email uniqueness
+Password hashing
+Email format validation
+Token verification
+Error and success response handling
+
+
+## Running the App
+- Create a `.env` file at the root with the following:
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=yourpassword
+DB_NAME=yourdbname
+
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your@email.com
+SMTP_PASS=your_smtp_password
+- npm install
+- npm run start:dev
