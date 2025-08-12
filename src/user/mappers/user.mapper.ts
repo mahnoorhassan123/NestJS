@@ -20,7 +20,7 @@ export class UserMapper {
       googleId: prismaUser.googleId ?? undefined,
       profilePicture: prismaUser.profilePicture ?? undefined,
       googleAccessToken: prismaUser.googleAcessToken ?? undefined, 
-      createdAt: prismaUser.CreatedAt,
+      createdAt: prismaUser.CreatedAt ?? undefined,
       modifiedBy: prismaUser.ModifiedBy ?? undefined,
       createdBy: prismaUser.CreatedBy ?? undefined,
       modifiedAt: prismaUser.ModifiedAt ?? undefined,
@@ -68,5 +68,4 @@ export class UserMapper {
     googleAcessToken: dto.googleAccessToken,
   };
 }
-
 }

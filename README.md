@@ -101,6 +101,7 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 ### Features and Modules
 This project includes a fully functional User module built with NestJS, Prisma ORM, and MySQL. It includes:
 
+
 ## User Module Features
 - Create, Read, Update users
 - Secure password hashing with bcryptjs
@@ -110,33 +111,6 @@ This project includes a fully functional User module built with NestJS, Prisma O
 - Role-based users: USER, ADMIN, EXTERNAL
 - Input validation using class-validator
 - Middleware for route authentication (via AuthMiddleware)
-
-
-## Folder Structure
-src/
-├── user/
-│ ├── controllers/
-│ │ └── user.controller.ts
-│ ├── services/
-│ │ └── user.service.ts
-│ ├── dtos/
-│ │ └── user.dto.ts
-│ ├── entities/
-│ │ └── user.entity.ts
-│ ├── helpers/
-│ │ └── mail.helper.ts
-│ ├── mappers/
-│ │ └── user.mapper.ts
-│ └── user.module.ts
-├── prisma/
-│ ├── prisma.module.ts
-│ ├── prisma.service.ts
-│ └── schema.prisma
-├── common/
-│ └── middleware/
-│ └── auth.middleware.ts
-├── app.module.ts
-├── main.ts
 
 
 ## How It Works
@@ -164,6 +138,22 @@ Password hashing
 Email format validation
 Token verification
 Error and success response handling
+
+
+## Run APIs on Postman
+- POST http://localhost:3001/user/save
+- GET http://localhost:3001/user?userId=1
+- GET http://localhost:3001/user/list
+- POST http://localhost:3001/user/current-user-record
+- POST http://localhost:3001/user/get-current-user-record
+- POST http://localhost:3001/user/set-pass
+- POST http://localhost:3001/user/forgot-password
+- POST http://localhost:3001/user/token-verify
+- POST http://localhost:3001/user/google-auth
+
+## Unit Test Cases
+- Added unit test cases with jest
+- run `npm test` to run the test cases.
 
 
 ## Running the App

@@ -7,8 +7,19 @@ export class AuthMiddleware implements NestMiddleware {
   constructor(private readonly prisma: PrismaService) {}
 
   async use(req: Request, res: Response, next: NextFunction): Promise<void> {
-    const rawCookie = req.cookies?.user;
+    console.log('Incoming request in AuthMiddleware:', req.method, req.url);
 
+    if (
+    req.path === '/user/save' ||
+    req.path === '/user/login-auth' ||
+    req.path === '/user/google-auth' ||
+    req.path === '/user/list' ||
+    req.path === '/user'
+  ) {
+    return next();
+  }
+
+    const rawCookie = req.cookies?.user;
     if (!rawCookie) {
       throw new UnauthorizedException('Authentication cookie not found');
     }
@@ -16,7 +27,9 @@ export class AuthMiddleware implements NestMiddleware {
     let parsedUser: any;
     try {
       parsedUser = JSON.parse(rawCookie);
-    } catch {
+      console.log('Parsed cookie:', parsedUser);
+    } catch (err) {
+      console.error('Failed to parse cookie:', err);
       throw new UnauthorizedException('Invalid cookie format');
     }
 
@@ -31,6 +44,7 @@ export class AuthMiddleware implements NestMiddleware {
       throw new UnauthorizedException('User not found or inactive');
     }
 
+    console.log('User authenticated successfully');
     req['user'] = dbUser;
     next();
   }

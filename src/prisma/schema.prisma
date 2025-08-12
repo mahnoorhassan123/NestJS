@@ -7,13 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserType {
+  admin
+  user
+  external
+}
+
 model User {
   id                  Int      @id @default(autoincrement())
   firstname           String?  
   lastname            String?
   email               String   @unique
   password            String?  
-  usertype            String
+  usertype            UserType
   orderExportColumns String?
   lastPasUpdate     DateTime?
   active              Boolean? @default(true)
@@ -23,8 +29,45 @@ model User {
   googleId           String?
   profilePicture     String?
   googleAcessToken  String?
-  CreatedAt          DateTime @default(now())
+  CreatedAt          DateTime?
   ModifiedBy         Int?
   CreatedBy          Int?
-  ModifiedAt         DateTime @updatedAt
+  ModifiedAt         DateTime?
+
+  activityLogs       ActivityLog[]
+  passwordHistories  PasswordHistory[] 
+  @@map("user")
+}
+
+
+enum ActivityType {
+  Store
+  BlueSky
+}
+
+model ActivityLog {
+  id            Int          @id @default(autoincrement())
+  userId        Int?
+  email         String?
+  firstname     String?
+  lastname      String?
+  url           String?
+  lastModifyOn  DateTime?
+  ipAddress     String?
+  type          ActivityType 
+  env           String?
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@map("activity_log")
+}
+
+model PasswordHistory {
+  id         Int      @id @default(autoincrement())
+  password   String
+  userId     Int
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("password_history") 
 }

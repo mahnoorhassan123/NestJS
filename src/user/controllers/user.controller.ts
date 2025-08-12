@@ -42,63 +42,63 @@ export class UserController {
     return res.send(result);
   }
 
-  // @Post('current-user-record')
-  // async saveActivity(@Body('data') data: any, @Res() res: Response) {
-  //   const result = await this.userService.saveActivityLog(data);
-  //   return res.send(result);
-  // }
+  @Post('current-user-record')
+  async saveActivity(@Body('data') data: any, @Res() res: Response) {
+    const result = await this.userService.saveActivityLog(data);
+    return res.send(result);
+  }
 
-  // @Post('get-current-user-record')
-  // async getActivity(@Body('data') filter: any, @Res() res: Response) {
-  //   const result = await this.userService.getActivityLog(filter);
-  //   return res.send(result);
-  // }
+  @Post('get-current-user-record')
+  async getActivity(@Body('data') filter: any, @Res() res: Response) {
+    const result = await this.userService.getActivityLog(filter);
+    return res.send(result);
+  }
 
-  // @Post('set-pass')
-  // async setPassword(
-  //   @Body('data') data: SetPasswordDto,
-  //   @Res() res: Response
-  // ) {
-  //   const result = await this.userService.setPassword(data);
-  //   return res.send(result);
-  // }
+  @Post('set-pass')
+  async setPassword(
+    @Body('data') data: SetPasswordDto,
+    @Res() res: Response
+  ) {
+    const result = await this.userService.setPassword(data);
+    return res.send(result);
+  }
 
-  // @Post('forgot-password')
-  // async forgotPassword(
-  //   @Body('data') data: ForgotPasswordDto,
-  //   @Req() req: Request,
-  //   @Res() res: Response
-  // ) {
-  //   const result = await this.userService.forgotPassword(data, req);
-  //   return res.send(result);
-  // }
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body('data') data: ForgotPasswordDto,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const result = await this.userService.forgotPassword(data, req);
+    return res.send(result);
+  }
 
-  // @Post('token-verify')
-  // async tokenVerify(
-  //   @Body('data') body: { token: string },
-  //   @Res() res: Response
-  // ) {
-  //   const result = await this.userService.verifyToken(body.token);
-  //   return res.send(result);
-  // }
+  @Post('token-verify')
+  async tokenVerify(
+    @Body('data') body: { token: string },
+    @Res() res: Response
+  ) {
+    const result = await this.userService.verifyToken(body.token);
+    return res.send(result);
+  }
 
-  // @Post('google-auth')
-  // async googleAuth(
-  //   @Body('response') { value: googleUserData }: any,
-  //   @Req() req: Request,
-  //   @Res() res: Response
-  // ) {
-  //   const result = await this.userService.googleAuth(googleUserData, req);
-  //   return res.send(result);
-  // }
+  @Post('google-auth')
+  async googleAuth(
+    @Body('response') { value: googleUserData }: any,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const result = await this.userService.googleAuth(googleUserData, req);
+    return res.send(result);
+  }
 
-  // @Post('login-auth')
-  // async loginAuth(
-  //   @Body('data') data: LoginAuthDto,
-  //   @Req() req: Request,
-  //   @Res() res: Response
-  // ) {
-  //   const result = await this.userService.loginAuth(data, req);
-  //   return res.send(result);
-  // }
+  @Post('login-auth')
+  async loginAuth(
+    @Body('data') data: LoginAuthDto,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const result = await this.userService.loginAuth(data, req);
+    return res.send(result);
+  }
 }

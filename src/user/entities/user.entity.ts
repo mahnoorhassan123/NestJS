@@ -14,7 +14,7 @@ export class UserEntity {
   googleId?: string;
   profilePicture?: string;
   googleAccessToken?: string;
-  createdAt: Date;
+  createdAt?: Date;
   modifiedBy?: number;
   createdBy?: number;
   modifiedAt?: Date;
