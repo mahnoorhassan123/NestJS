@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UserMapper } from '../mappers/user.mapper';
 import { CreateUserDto, SetPasswordDto, ForgotPasswordDto, LoginAuthDto } from '../dtos/user.dto';
 import * as bcrypt from 'bcryptjs';
@@ -9,78 +9,89 @@ import { UserEntity } from '../entities/user.entity';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     private prisma: PrismaService,
     private mailHelper: MailHelper,
-  ) { }
+  ) {}
 
   async getUserById(id: number): Promise<UserEntity | null> {
+    this.logger.debug(`Fetching user by ID: ${id}`);
     const user = await this.prisma.user.findUnique({ where: { id } });
     return user ? UserMapper.toDomain(user) : null;
   }
 
   async getAllUsers(): Promise<UserEntity[]> {
+    this.logger.log('Fetching all users from database');
     const users = await this.prisma.user.findMany();
-    console.log('DEBUG users from DB:', users);
+    this.logger.debug(`Fetched ${users.length} users`);
     return users.map(UserMapper.toDomain);
   }
 
   async saveUser(data: CreateUserDto, req: any): Promise<any> {
-  try {
-    const userExists = await this.prisma.user.findUnique({ where: { email: data.email } });
+    try {
+      const userExists = await this.prisma.user.findUnique({ where: { email: data.email } });
 
-    if (data.id) {
-      const updated = await this.prisma.user.update({
-        where: { id: data.id },
-        data: UserMapper.fromCreateDto(data),
-      });
-      return UserMapper.toDomain(updated);
-    } else if (!userExists) {
-      const hashedPassword = await bcrypt.hash(data.password, 10);
-      const token = Math.random().toString(36).substring(2);
-
-      const created = await this.prisma.user.create({
-        data: {
-          ...UserMapper.fromCreateDto(data),
-          password: hashedPassword,
-          token,
-        },
-      });
-
-      const link = `${req.protocol}://${req.get('host')}/auth/${token}`;
-
-      try {
-        await this.mailHelper.sendWelcomeEmail({
-          to: created.email,
-          firstName: created.firstname ?? '',
-          lastName: created.lastname ?? '',
-          link,
-          subject: 'Verify your account',
+      if (data.id) {
+        this.logger.log(`Updating user with ID: ${data.id}`);
+        const updated = await this.prisma.user.update({
+          where: { id: data.id },
+          data: UserMapper.fromCreateDto(data),
         });
-      } catch (mailErr) {
-        console.error('Mail sending failed:', mailErr);
-      }
+        return UserMapper.toDomain(updated);
+      } 
 
-      return UserMapper.toDomain(created);
-    } else {
+      if (!userExists) {
+        this.logger.log(`Creating new user with email: ${data.email}`);
+        const hashedPassword = await bcrypt.hash(data.password, 10);
+        const token = Math.random().toString(36).substring(2);
+
+        const created = await this.prisma.user.create({
+          data: {
+            ...UserMapper.fromCreateDto(data),
+            password: hashedPassword,
+            token,
+          },
+        });
+
+        const link = `${req.protocol}://${req.get('host')}/auth/${token}`;
+        try {
+          await this.mailHelper.sendWelcomeEmail({
+            to: created.email,
+            firstName: created.firstname ?? '',
+            lastName: created.lastname ?? '',
+            link,
+            subject: 'Verify your account',
+          });
+        } catch (mailErr) {
+          this.logger.error(`Failed to send welcome email to ${created.email}`, mailErr.stack);
+        }
+
+        return UserMapper.toDomain(created);
+      } 
+
+      this.logger.warn(`User with email ${data.email} already exists`);
       return { error: 'User with this email already exists.' };
-    }
-  } catch (err) {
-    console.error('saveUser failed:', err);
-    throw err;
-  }
-}
 
+    } catch (err) {
+      this.logger.error('saveUser failed', err.stack);
+      throw err;
+    }
+  }
 
   async saveActivityLog(data: any): Promise<any> {
+    this.logger.debug('Saving activity log', JSON.stringify(data));
     return this.prisma.activityLog.create({ data });
   }
 
   async getActivityLog(filter: any): Promise<any[]> {
+    this.logger.debug(`Fetching activity logs with filter: ${JSON.stringify(filter)}`);
     return this.prisma.activityLog.findMany({ where: filter });
   }
 
   async setPassword(data: SetPasswordDto): Promise<any> {
+    this.logger.log(`Setting password using token: ${data.token}`);
     const user = await this.prisma.user.findFirst({ where: { token: data.token } });
     if (!user) return { status: false, msg: 'Invalid token' };
 
@@ -94,6 +105,7 @@ export class UserService {
       if (!record.password) continue;
       const match = await bcrypt.compare(data.password, record.password);
       if (match) {
+        this.logger.warn(`User ${user.id} tried to reuse an old password`);
         return { status: false, msg: 'Password already used, try a new one' };
       }
     }
@@ -113,8 +125,12 @@ export class UserService {
   }
 
   async forgotPassword({ email }: ForgotPasswordDto, req: any): Promise<any> {
+    this.logger.log(`Password reset requested for email: ${email}`);
     const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) return { status: false, msg: 'Email not found' };
+    if (!user) {
+      this.logger.warn(`Password reset failed: email ${email} not found`);
+      return { status: false, msg: 'Email not found' };
+    }
 
     const token = Math.random().toString(36).substring(2);
     await this.prisma.user.update({ where: { email }, data: { token } });
@@ -131,17 +147,25 @@ export class UserService {
   }
 
   async verifyToken(token: string): Promise<{ status: boolean }> {
+    this.logger.debug(`Verifying token: ${token}`);
     const user = await this.prisma.user.findFirst({ where: { token } });
     return user ? { status: true } : { status: false };
   }
 
   async loginAuth(data: LoginAuthDto, req: any): Promise<any> {
+    this.logger.log(`Login attempt for email: ${data.email}`);
     const user = await this.prisma.user.findUnique({ where: { email: data.email } });
-    if (!user || !user.active) return { error: 'Invalid credentials or inactive user' };
+    if (!user || !user.active) {
+      this.logger.warn(`Login failed for ${data.email}`);
+      return { error: 'Invalid credentials or inactive user' };
+    }
 
     if (!user.password) return { error: 'Password not set for this user' };
     const valid = await bcrypt.compare(data.password, user.password);
-    if (!valid) return { error: 'Incorrect password' };
+    if (!valid) {
+      this.logger.warn(`Incorrect password attempt for ${data.email}`);
+      return { error: 'Incorrect password' };
+    }
 
     const lastUpdate = user.lastPasUpdate ?? new Date();
     const now = new Date();
@@ -155,8 +179,12 @@ export class UserService {
   }
 
   async googleAuth(userData: any, req: any): Promise<any> {
+    this.logger.log(`Google auth for email: ${userData.email}`);
     const user = await this.prisma.user.findUnique({ where: { email: userData.email } });
-    if (!user) return { success: false, message: 'Google user not found' };
+    if (!user) {
+      this.logger.warn(`Google user ${userData.email} not found`);
+      return { success: false, message: 'Google user not found' };
+    }
 
     await this.prisma.user.update({
       where: { email: user.email },

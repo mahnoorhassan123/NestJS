@@ -155,6 +155,8 @@ Error and success response handling
 - Added unit test cases with jest
 - run `npm test` to run the test cases.
 
+## Swagger API Documentation
+- http://localhost:3001/api-docs
 
 ## Running the App
 - Create a `.env` file at the root with the following:

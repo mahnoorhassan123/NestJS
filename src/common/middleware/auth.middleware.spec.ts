@@ -1,6 +1,8 @@
 import { AuthMiddleware } from './auth.middleware';
 import { UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { faker } from '@faker-js/faker';
+import { createUserEntityFactory } from '../../utils/factories/user.factory';
 
 describe('AuthMiddleware', () => {
   let middleware: AuthMiddleware;
@@ -52,40 +54,49 @@ describe('AuthMiddleware', () => {
   });
 
   it('should throw UnauthorizedException if token is invalid or inactive', async () => {
+    const userId = faker.number.int({ min: 1, max: 1000 });
+
     mockReq.path = '/protected';
-    mockReq.cookies = { user: JSON.stringify({ id: 1, token: 'wrong', active: true }) };
+    mockReq.cookies = { user: JSON.stringify({ id: userId, token: faker.string.uuid(), active: true }) };
     await expect(middleware.use(mockReq as any, mockRes as any, mockNext))
       .rejects
       .toThrow(UnauthorizedException);
 
-    mockReq.cookies = { user: JSON.stringify({ id: 1, token: 'verifiedUser', active: false }) };
+    mockReq.cookies = { user: JSON.stringify({ id: userId, token: faker.string.uuid(), active: false }) };
     await expect(middleware.use(mockReq as any, mockRes as any, mockNext))
       .rejects
       .toThrow(UnauthorizedException);
   });
 
   it('should throw UnauthorizedException if DB user not found or inactive', async () => {
+    const userId = faker.number.int({ min: 1, max: 1000 });
+    const token = faker.string.uuid();
+
     mockReq.path = '/protected';
-    mockReq.cookies = { user: JSON.stringify({ id: 1, token: 'verifiedUser', active: true }) };
+    mockReq.cookies = { user: JSON.stringify({ id: userId, token, active: true }) };
     (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
 
     await expect(middleware.use(mockReq as any, mockRes as any, mockNext))
       .rejects
       .toThrow(UnauthorizedException);
 
-    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ id: 1, active: false });
+    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ id: userId, active: false });
     await expect(middleware.use(mockReq as any, mockRes as any, mockNext))
       .rejects
       .toThrow(UnauthorizedException);
   });
 
   it('should call next() if authentication passes', async () => {
-    mockReq.path = '/protected';
-    mockReq.cookies = { user: JSON.stringify({ id: 1, token: 'verifiedUser', active: true }) };
-    (prismaService.user.findUnique as jest.Mock).mockResolvedValue({ id: 1, active: true });
+  const dbUser = createUserEntityFactory({ active: true });
+  const cookieUser = { id: dbUser.id, token: 'verifiedUser', active: true }; 
 
-    await middleware.use(mockReq as any, mockRes as any, mockNext);
-    expect(mockNext).toHaveBeenCalled();
-    expect(mockReq.user).toEqual({ id: 1, active: true });
-  });
+  mockReq.path = '/protected';
+  mockReq.cookies = { user: JSON.stringify(cookieUser) };
+  (prismaService.user.findUnique as jest.Mock).mockResolvedValue(dbUser);
+
+  await middleware.use(mockReq as any, mockRes as any, mockNext);
+
+  expect(mockNext).toHaveBeenCalled();
+  expect(mockReq.user).toEqual(dbUser);
 });
+})

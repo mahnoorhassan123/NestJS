@@ -1,52 +1,31 @@
 import { UserMapper } from './user.mapper';
-import { UserEntity } from '../entities/user.entity';
-import { User } from '@prisma/client';
 import { CreateUserDto, userType } from '../dtos/user.dto';
+import { faker } from '@faker-js/faker';
+import { createUserFactory, createUserEntityFactory, createUserDtoFactory } from '../../utils/factories/user.factory';
 
 describe('UserMapper', () => {
-  const prismaUser: User = {
-    id: 1,
-    firstname: 'John',
-    lastname: 'Doe',
-    email: 'john@example.com',
-    password: 'hashedpass',
-    usertype: 'admin',
-    orderExportColumns: 'col1,col2',
-    lastPasUpdate: new Date('2025-01-01T00:00:00Z'),
-    active: true,
-    isBlocked: false,
-    blockMailSent: false,
-    token: 'token123',
-    googleId: 'google-123',
-    profilePicture: 'pic.jpg',
-    googleAcessToken: 'access-token-xyz',
-    CreatedAt: new Date('2024-01-01T00:00:00Z'),
-    ModifiedBy: 2,
-    CreatedBy: 1,
-    ModifiedAt: new Date('2025-06-01T00:00:00Z'),
-  };
-
-  const userEntity: UserEntity = {
-    id: 1,
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com',
-    password: 'hashedpass',
-    userType: 'admin',
-    orderExportColumns: 'col1,col2',
-    lastPasUpdate: new Date('2025-01-01T00:00:00Z'),
-    active: true,
-    isBlocked: false,
-    blockMailSent: false,
-    token: 'token123',
-    googleId: 'google-123',
-    profilePicture: 'pic.jpg',
-    googleAccessToken: 'access-token-xyz',
-    createdAt: new Date('2024-01-01T00:00:00Z'),
-    modifiedBy: 2,
-    createdBy: 1,
-    modifiedAt: new Date('2025-06-01T00:00:00Z'),
-  };
+  const prismaUser = createUserFactory();
+  const userEntity = createUserEntityFactory({
+    id: prismaUser.id,
+    firstName: prismaUser.firstname ?? undefined,
+    lastName: prismaUser.lastname ?? undefined,
+    email: prismaUser.email,
+    password: prismaUser.password ?? undefined,
+    userType: prismaUser.usertype ,
+    orderExportColumns: prismaUser.orderExportColumns ?? undefined,
+    lastPasUpdate: prismaUser.lastPasUpdate ?? undefined,
+    active: prismaUser.active ?? undefined,
+    isBlocked: prismaUser.isBlocked,
+    blockMailSent: prismaUser.blockMailSent,
+    token: prismaUser.token ?? undefined,
+    googleId: prismaUser.googleId ?? undefined, 
+    profilePicture: prismaUser.profilePicture ?? undefined,
+    googleAccessToken: prismaUser.googleAcessToken ?? undefined,
+    createdAt: prismaUser.CreatedAt ?? undefined,
+    modifiedBy: prismaUser.ModifiedBy ?? undefined,
+    createdBy: prismaUser.CreatedBy ?? undefined,
+    modifiedAt: prismaUser.ModifiedAt ?? undefined,
+  });
 
   describe('toDomain', () => {
     it('should map PrismaUser to UserEntity correctly', () => {
@@ -89,23 +68,7 @@ describe('UserMapper', () => {
 
   describe('fromCreateDto', () => {
     it('should map CreateUserDto to Prisma.UserCreateInput correctly', () => {
-      const dto: CreateUserDto = {
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane@example.com',
-        password: 'secret',
-        userType: userType.ADMIN,
-        orderExportColumns: 'colA,colB',
-        lastPasUpdate: new Date('2023-05-05T00:00:00Z'),
-        active: false,
-        isBlocked: true,
-        blockMailSent: true,
-        token: 'tok123',
-        googleId: 'google-789',
-        profilePicture: 'pic2.jpg',
-        googleAccessToken: 'access-token-abc',
-      };
-
+      const dto = createUserDtoFactory();
       const expected = {
         firstname: dto.firstName,
         lastname: dto.lastName,
@@ -115,8 +78,8 @@ describe('UserMapper', () => {
         orderExportColumns: dto.orderExportColumns,
         lastPasUpdate: dto.lastPasUpdate,
         active: dto.active,
-        isBlocked: dto.isBlocked,
-        blockMailSent: dto.blockMailSent,
+        isBlocked: dto.isBlocked ?? false,
+        blockMailSent: dto.blockMailSent ?? false,
         token: dto.token,
         googleId: dto.googleId,
         profilePicture: dto.profilePicture,
@@ -129,8 +92,8 @@ describe('UserMapper', () => {
 
     it('should default active to true and isBlocked/blockMailSent to false if not set', () => {
       const dto: CreateUserDto = {
-        email: 'jane@example.com',
-        password: 'secret',
+        email: faker.internet.email(),
+        password: faker.internet.password(),
         userType: userType.USER,
       };
 
