@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { CustomerService } from '../services/customer.service';
-import { CreateCustomerDto } from '../dtos/create-customer.dto';
+import { CreateCustomerDto } from '../dtos/customer.dto';
 
 @Controller('customers')
 export class CustomerController {

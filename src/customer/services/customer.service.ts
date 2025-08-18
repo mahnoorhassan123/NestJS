@@ -1,6 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateCustomerDto } from '../dtos/create-customer.dto';
+import { CreateCustomerDto } from '../dtos/customer.dto';
 import { createObjectCsvStringifier } from 'csv-writer';
 
 @Injectable()
