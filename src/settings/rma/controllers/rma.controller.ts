@@ -14,7 +14,7 @@ import {
 import { RmaService } from '../services/rma.service';
 import { CreateRmaDto, UpdateRmaDto } from '../dtos/rma.dto';
 
-@Controller('rma')
+@Controller('settings/rma')
 export class RmaController {
   constructor(private readonly rmaService: RmaService) {}
 

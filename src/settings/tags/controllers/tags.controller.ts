@@ -14,7 +14,7 @@ import {
 import { TagsService } from '../services/tags.service';
 import { CreateTagDto, UpdateTagDto } from '../dtos/tags.dto';
 import { Response } from 'express';
-@Controller('tags')
+@Controller('settings/tags')
 export class TagsController {
   constructor(private readonly tagsService: TagsService) {}
 
