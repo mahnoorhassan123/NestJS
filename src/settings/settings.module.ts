@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { TagsService } from './tags/services/tags.service';
-import { TagsController } from './tags/controllers/tags.controller';
 import { TagsModule } from './tags/tags.module';
+import { RmaModule } from './rma/rma.module';
 
 @Module({
-  controllers: [TagsController],
-  providers: [TagsService],
-  imports: [TagsModule],
+  imports: [TagsModule, RmaModule],
+  controllers: [],
+  providers: [],
 })
 export class SettingsModule {}

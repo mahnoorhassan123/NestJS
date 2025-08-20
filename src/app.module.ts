@@ -11,7 +11,6 @@ import { SettingsModule } from './settings/settings.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
     PrismaModule,
     UserModule,
     CustomerModule,

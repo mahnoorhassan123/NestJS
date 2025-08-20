@@ -117,7 +117,7 @@ model EndUser {
   @@map("end_user")
 }
 
-model RMA {
+model Rma {
   id               Int      @id @default(autoincrement())
   sn               String   @unique
   rmaNumber        String   @unique
@@ -129,6 +129,8 @@ model RMA {
   ready            Boolean
   holdingTime      Int
   extraInfo        String?
+
+  @@map("rma")
 }
 
 enum TagType {
@@ -143,10 +145,14 @@ model Tag {
   backgroundColor String
   type            TagType @default(Product)
   active          Boolean @default(true)
+
+  @@map("tag")
 }
 
 model File {
   id    Int    @id @default(autoincrement())
   title String @unique
   URL   String
+
+  @@map("file")
 }
