@@ -1,3 +1,4 @@
+import { createActivityLogEntityFactory } from '../../utils/factories/activity-log.factory';
 import { ActivityLogEntity } from './activity-log.entity';
 
 describe('ActivityLogEntity', () => {

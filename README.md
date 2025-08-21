@@ -97,12 +97,21 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
+<<<<<<< HEAD
 ### Features and Modules
 
 This project includes a fully functional User module built with NestJS, Prisma ORM, and MySQL. It includes:
 
 ## User Module Features
 
+=======
+
+### Features and Modules
+This project includes a fully functional User module built with NestJS, Prisma ORM, and MySQL. It includes:
+
+
+## User Module Features
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 - Create, Read, Update users
 - Secure password hashing with bcryptjs
 - Email verification system with unique token
@@ -112,10 +121,16 @@ This project includes a fully functional User module built with NestJS, Prisma O
 - Input validation using class-validator
 - Middleware for route authentication (via AuthMiddleware)
 
+<<<<<<< HEAD
 ## How It Works
 
 ### Create User Flow
 
+=======
+
+## How It Works
+### Create User Flow
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 1. Validates input using DTOs.
 2. Checks if email already exists in DB.
 3. Hashes the password and generates a token.
@@ -123,18 +138,28 @@ This project includes a fully functional User module built with NestJS, Prisma O
 5. Sends a verification email using Nodemailer.
 
 ### Email Format
+<<<<<<< HEAD
 
+=======
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 - Welcome, Reset Password, and Account Lock emails include:
 - First name and last name
 - Secure link to verify or reset password
 - Custom subject line
 
 ### Auth Middleware
+<<<<<<< HEAD
 
 - Used to secure routes such as /user using a custom AuthMiddleware.
 
 ## Test Cases Covered
 
+=======
+- Used to secure routes such as /user using a custom AuthMiddleware.
+
+
+## Test Cases Covered 
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 First name, last name, email and role validations
 Email uniqueness
 Password hashing
@@ -142,8 +167,13 @@ Email format validation
 Token verification
 Error and success response handling
 
+<<<<<<< HEAD
 ## Run APIs on Postman
 
+=======
+
+## Run APIs on Postman
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 - POST http://localhost:3001/user/save
 - GET http://localhost:3001/user?userId=1
 - GET http://localhost:3001/user/list
@@ -155,6 +185,7 @@ Error and success response handling
 - POST http://localhost:3001/user/google-auth
 
 ## Unit Test Cases
+<<<<<<< HEAD
 
 - Added unit test cases with jest
 - run `npm test` to run the test cases.
@@ -163,6 +194,16 @@ Error and success response handling
 
 - Create a `.env` file at the root with the following:
 
+=======
+- Added unit test cases with jest
+- run `npm test` to run the test cases.
+
+## Swagger API Documentation
+- http://localhost:3001/api-docs
+
+## Running the App
+- Create a `.env` file at the root with the following:
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
 ```env
 DB_HOST=localhost
 DB_PORT=3306
@@ -175,5 +216,9 @@ SMTP_PORT=587
 SMTP_USER=your@email.com
 SMTP_PASS=your_smtp_password
 - npm install
+<<<<<<< HEAD
 - npm run start:dev
 ```
+=======
+- npm run start:dev
+>>>>>>> aea52166ecf58a298dafc199231fac72535c94bf
