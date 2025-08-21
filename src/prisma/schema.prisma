@@ -36,7 +36,12 @@ model User {
 
   activityLogs       ActivityLog[]
   passwordHistories  PasswordHistory[] 
+  attachedFiles      AttachedFile[] @relation("UploadedBy")
+  orders             Order[]        @relation("OrderedBy")
+  quotes             Quote[]        @relation("OrderedBy")
   @@map("user")
+  OrdersSnapshot OrdersSnapshot[] @relation("ModifiedBy")
+  Order Order[] @relation("ModifiedBy")
 }
 
 
@@ -72,54 +77,365 @@ model PasswordHistory {
   @@map("password_history") 
 }
 
-
 model Customer {
-  id              Int     @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   firstName       String
   lastName        String
-  email           String  @unique
+  email           String   @unique
   password        String
   company         String
   billingAddress1 String
-  billingAddress2 String  @default("")
+  billingAddress2 String   @default("")
   city            String
   postalCode      String
   state           String
   country         String
   phoneNumber     String
-  discount        Float?  @default(0.0)
-  active          Boolean @default(false)
-  hide            Boolean @default(false)
+  discount        Float?   @default(0.0)
+  active          Boolean  @default(false)
+  hide            Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  orders          Order[]  @relation("CustomerOrders")
+  salesRepOrders  Order[]  @relation("SalesRepOrders")
+
+  @@map("customer")
+}
+
+model EndUser {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  company         String
+  billingAddress1 String
+  billingAddress2 String   @default("")
+  city            String
+  postalCode      String
+  state           String
+  country         String
+  phoneNumber     String
+  discount        Float?   @default(0.0)
+  external        Boolean  @default(false)
+  hide            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orders          Order[]  @relation("EndUserOrders")  
+
+  @@map("end_user")
+}
+
+model AttachedFile {
+  id          Int      @id @default(autoincrement())
+  orderId     Int?
+  quoteId     Int?
+  name        String
+  type        String
+  file        String
+  extension   String
+  uploadedBy  Int
+  uploadedAt  DateTime @default(now())
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  order       Order?   @relation(fields: [orderId], references: [id])
+  quote       Quote?   @relation(fields: [quoteId], references: [id])
+  user        User     @relation("UploadedBy", fields: [uploadedBy], references: [id])
+
+  @@map("attached_files")
+}
+
+model OrderTrackingNo {
+  id              Int                      @id @default(autoincrement())
+  orderId         Int
+  trackingNo      String?                  @map("TrackingNo")
+  gateway         String?                  @map("Gateway")
+  shipDate        DateTime?                @map("ShipDate")
+  shipmentCost    Float?                   @map("ShipmentCost")
+  shippingMethodId Int?                    @map("ShippingMethodID")
+  orderType       String?
+  updatedBy       Int?
+  createdAt       DateTime                 @default(now())
+  Package         String?                    
+  Form            String?                 
+  isImported      Boolean?                 @default(false)  
+  order           Order?                   @relation(fields: [orderId], references: [id])
+  lineItems       TrackingShippingLineItem[]
+
+  @@map("order_tracking_no")
+}
+
+model TrackingShippingLineItem {
+  id              Int             @id @default(autoincrement())
+  trackShippingId Int
+  orderId         Int?
+  displayOrder    Int?
+  quantity        Int?
+  productId       Int?
+  productCode     String?
+  productDescription String?
+  isChild         Boolean?
+  createdAt       DateTime?
+  createdBy       Int?
+  updatedAt       DateTime        @updatedAt
+  updatedBy       Int?
+  tracking        OrderTrackingNo @relation(fields: [trackShippingId], references: [id])
+
+  @@map("tracking_shipping_lineitems")
+}
+
+model OrderPackage {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  name      String?
+  quantity  Int?
+  price     Float?
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id])
+
+  @@map("order_packages")
+}
+
+model OrdersSnapshot {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  orderComments String?
+  orderNotes    String?
+  lastModBy     Int?
+  lastModified  DateTime?
+  order         Order?   @relation(fields: [orderId], references: [id])
+  modifiedBy    User?    @relation("ModifiedBy", fields: [lastModBy], references: [id])  
+
+  @@map("orders_snapshot")
+}
 
 
-  @@map("customer") 
+
+model Order {
+  id                      Int           @id @default(autoincrement())
+        
+  orderStatus             String?
+  orderDate               DateTime?
+  customerId              Int?
+  shippingMethodId        Int?
+  totalShippingCost       Float?
+  shipDate                DateTime?
+ 
+  lastModBy               Int? 
+  ccLast4                 String?
+  orderEntrySystem        String?
+  orderComments           String?
+  orderNotes              String?
+  poNum                   String?
+  billingLastName         String?
+  billingFirstName        String?
+  shipCompanyName         String?
+  shipFirstName           String?
+  shipLastName            String?
+  billingCompanyName      String?
+  paymentAmount           Float?
+  orderType               String?
+  orderSerials            String?
+  salesRepCustomerId      Int?
+  isPayed                 Boolean?
+  billingAddress1         String?
+  billingAddress2         String?
+  billingCity             String?
+  billingCountry          String?
+  billingFaxNumber        String?
+  billingPhoneNumber      String?
+  billingPostalCode       String?
+  billingState            String?
+  shipAddress1            String?
+  shipAddress2            String?
+  shipCity                String?
+  shipCountry             String?
+  shipFaxNumber           String?
+  shipPhoneNumber         String?
+  shipPostalCode          String?
+  shipState               String?
+  shipped                 Boolean?
+  cancelDate              DateTime?
+  invoiceableOn           DateTime?
+  oldOrder                Boolean?
+  shipEmailAddress        String?        
+  insuranceValue          Float?         
+  endUserId               Int?           
+  trackingNo              String?        
+  incoterm                String?        
+  creditCardAuthorizationHash String?    
+  customFieldCarrierAcctNo String?       
+  orderTaxExempt          Boolean?       
+  totalPaymentReceived    Float?         
+  currentCustomerDiscount  Float?         
+  isCustomerNameShow      Boolean?       
+  isCustomerEmailShow     Boolean?       
+  salesTaxRate1           Float?         
+  salesTaxRate2           Float?         
+  salesTaxRate3           Float?         
+  salesTax1               Float?         
+  salesTax2               Float?         
+  salesTax3               Float?         
+  privateNotes            String?        
+  lastModified            DateTime?      
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  packages                OrderPackage[]
+  files                   AttachedFile[]
+  tracking                OrderTrackingNo[]
+  quote                   Quote?
+  customer                Customer?     @relation("CustomerOrders", fields: [customerId], references: [id])
+  orderedBy               User?         @relation("OrderedBy", fields: [lastModBy], references: [id],map: "orders_orderedBy_fkey")
+  modifiedBy              User?         @relation("ModifiedBy", fields: [lastModBy], references: [id],map: "orders_lastModBy_fkey")   
+  tagTables               TagTable[]    @relation("TagTables")
+  
+  
+  orderDetails            OrderDetail[]
+  salesRep                Customer?     @relation("SalesRepOrders", fields: [salesRepCustomerId], references: [id])
+  endUser                 EndUser?      @relation("EndUserOrders", fields: [endUserId], references: [id])   
+  snapshots               OrdersSnapshot[]   
+
+  @@map("orders")
+  ProductSerial ProductSerial[]
+}
+
+
+
+model OrderDetail {
+  id                           Int      @id @default(autoincrement())
+  orderId                      Int
+  productId                    Int?
+  productCode                  String?
+  description                  String?
+  qtyOnPackingSlip             Int?
+  isChild                      Boolean?
+  displayOrder                 Int?
+  createdAt                    DateTime @default(now())
+  productName                  String?   
+  harmonizedCode               String?  
+  exportControlClassificationNumber String?  
+  productWeight                Float?    
+  unitOfMeasure                String?   
+  countryOfOrigin              String?   
+  exportDescription            String?   
+  quantity                     Int?      
+  productPrice                 Float?    
+  discountValue                Float?    
+  productSubClass              String?   
+  taxableProduct               Boolean?  
+  qtyShipped                   Int?      
+  qtyOnBackOrder               Int?      
+  parent                       Int?      
+  parentName                   String?   
+  productSerials               String?   
+  isCategoriesOption           Boolean?  
+  optionId                     Int?      
+  categoryIdOfOption           Int?      
+  options                      String?   
+  order                        Order    @relation(fields: [orderId], references: [id])
+  product                      Product? @relation(fields: [productId], references: [id])
+
+  @@map("order_details")
+}
+
+model Quote {
+  id         Int      @id @default(autoincrement())
+  quoteNo    Int      @unique
+  isOrdered  Boolean  @default(false)
+  orderBy    Int?
+  orderId    Int?     @unique
+  quoteDate  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  order      Order?   @relation(fields: [orderId], references: [id])
+  user       User?    @relation("OrderedBy", fields: [orderBy], references: [id])
+  files      AttachedFile[]
+
+  @@map("quotes")
+}
+
+model Product {
+ id                        Int           @id @default(autoincrement())
+  holdForApproval           Boolean       @default(false)
+  gpn                       String?
+  productClassId            Int?          @map("productClassId")
+  productSubClassId         Int?          @map("productSubClassId")
+  backlog_show              Boolean?      @map("backlog_show")
+  backlog_leadtime          DateTime?     @map("backlog_leadtime")
+  backlog_comments          String?       @map("backlog_comments")
+  backlog_priority          Int?          @map("backlog_priority")
+  updatedDateBacklogComment DateTime?     @map("updatedDateBacklogComment")
+  isActive                  Boolean?      @map("IsActive")
+  orderDetails              OrderDetail[]
+  productSerials            ProductSerial[]
+  productClass              ProductClass? @relation(fields: [productClassId], references: [id])
+  productSubClass           ProductSubClass? @relation(fields: [productSubClassId], references: [id])
+
+ 
+
+  @@map("products")
+}
+
+model ProductSerial {
+  id          Int      @id @default(autoincrement())
+  productId   Int?
+  groupId     Int?
+  orderId     Int?
+  status      String?
+  type        String?
+  isSold      Boolean?  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product? @relation(fields: [productId], references: [id])
+  order       Order?   @relation(fields: [orderId], references: [id])
+
+  @@map("product_serials")
+}
+
+model TagTable {
+  id        Int      @id @default(autoincrement())
+  tableId   Int
+  tableName String
+  tagId     Int
+  orderId   Int?
+  createdAt DateTime @default(now())
+  tag       Tag     @relation("Tag", fields: [tagId], references: [id])
+  order     Order?   @relation("TagTables",fields: [orderId],  references: [id])
+  
+  @@map("tag_tables")
+}
+
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String
+  tagTables TagTable[] @relation("Tag")
+  createdAt DateTime  @default(now())
+
+  @@map("tags")
+}
+
+model ShippingMethod {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  @@map("shipping_methods")
 }
 
 
 
 
+model ProductClass {
+  id        Int       @id @default(autoincrement())
+  Name      String
+  products  Product[]
 
-model EndUser {
-  id              Int     @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  email           String  @unique
-  company         String
-  billingAddress1 String
-  billingAddress2 String  @default("")
-  city            String
-  postalCode      String
-  state           String
-  country         String
-  phoneNumber     String
-  discount        Float?  @default(0.0)
-  external          Boolean @default(false)
-  hide            Boolean @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  @@map("product_class")
+}
 
+model ProductSubClass {
+  id        Int       @id @default(autoincrement())
+  Name      String
+  products  Product[]
 
-  @@map("end_user") 
+  @@map("product_subclass")
 }
