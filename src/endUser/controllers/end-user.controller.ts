@@ -14,9 +14,14 @@ import { EndUserService } from '../service/end-user.service';
 import { Response } from 'express';
 import { EndUserDto } from '../dtos/endUser.dto';
 
-@Controller('end-user')
+@Controller('end-users')
 export class EndUserController {
   constructor(private readonly endUserService: EndUserService) {}
+
+  @Get('sync')
+  async syncCustomers() {
+    return await this.endUserService.syncEndUsers();
+  }
 
   @Get()
   async getCustomers(
@@ -35,6 +40,16 @@ export class EndUserController {
     );
   }
 
+  @Get('list')
+  async getAllEndUsers() {
+    return await this.endUserService.getAllEndUsers();
+  }
+
+  @Get('modal-list')
+  async getAllModalEndUsers() {
+    return await this.endUserService.getAllModalEndUsers();
+  }
+
   @Get('count')
   async countCustomers() {
     return await this.endUserService.countEndUsers();
@@ -48,21 +63,21 @@ export class EndUserController {
     res.send(csvData);
   }
 
-  @Get(':id')
-  async getCustomer(@Param('id') id: string) {
-    const customer = await this.endUserService.getEndUserById(+id);
+  @Get('/getRecord/:endUserid')
+  async getCustomer(@Param('endUserid') endUserid: string) {
+    const customer = await this.endUserService.getEndUserById(+endUserid);
     if (!customer) {
       throw new HttpException('Customer not found', HttpStatus.NOT_FOUND);
     }
     return customer;
   }
 
-  @Post()
+  @Post('save')
   async createCustomer(@Body() createCustomerDto: EndUserDto) {
     return await this.endUserService.createEndUser(createCustomerDto);
   }
 
-  @Patch(':id')
+  @Patch('update/:id')
   async updateCustomer(
     @Param('id') id: string,
     @Body() updateCustomerDto: EndUserDto,

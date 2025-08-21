@@ -2,7 +2,8 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { EndUserDto } from '../dtos/endUser.dto';
 import { createObjectCsvStringifier } from 'csv-writer';
-
+import { parseString } from 'xml2js';
+import * as request from 'request';
 @Injectable()
 export class EndUserService {
   constructor(private prisma: PrismaService) {}
@@ -28,24 +29,57 @@ export class EndUserService {
           ],
         }
       : {};
+    try {
+      const [customers, total] = await Promise.all([
+        this.prisma.endUser.findMany({
+          where: whereClause,
+          orderBy: {
+            [sortBy]: order.toLowerCase() === 'desc' ? 'desc' : 'asc',
+          },
+          skip,
+          take: limit,
+        }),
+        this.prisma.endUser.count({ where: whereClause }),
+      ]);
 
-    const [customers, total] = await Promise.all([
-      this.prisma.endUser.findMany({
-        where: whereClause,
-        orderBy: { [sortBy]: order.toLowerCase() === 'desc' ? 'desc' : 'asc' },
-        skip,
-        take: limit,
-      }),
-      this.prisma.endUser.count({ where: whereClause }),
-    ]);
+      return {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        data: customers,
+      };
+    } catch (error) {
+      console.error('error while ');
+    }
+  }
 
-    return {
-      page,
-      limit,
-      total,
-      pages: Math.ceil(total / limit),
-      data: customers,
-    };
+  async getAllEndUsers() {
+    try {
+      const endUsers = await this.prisma.endUser.findMany();
+      return endUsers;
+    } catch (error) {
+      console.error('error fetching all end users', error);
+      throw new HttpException(
+        'Error fetching all end users',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAllModalEndUsers() {
+    try {
+      const endUsers = await this.prisma.endUser.findMany({
+        where: { hide: false },
+      });
+      return endUsers;
+    } catch (error) {
+      console.error('error fetching all end users', error);
+      throw new HttpException(
+        'Error fetching all end users',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getEndUserById(id: number) {
@@ -114,5 +148,43 @@ export class EndUserService {
     }));
 
     return csvWriter.getHeaderString() + csvWriter.stringifyRecords(records);
+  }
+
+  async syncEndUsers(): Promise<any> {
+    const customerUrl =
+      'http://quggv.lmprq.servertrust.com/net/WebService.aspx?Login=developer@intrepidcs.com&EncryptedPassword=' +
+      process.env.VOLUSION_PASSWORD +
+      '&EDI_Name=Generic\\Customers&SELECT_Columns=CustomerID,BillingAddress1,BillingAddress2,City,CompanyName,Country,EmailAddress,FirstName,LastName,PostalCode,State,PhoneNumber';
+
+    const opt = { url: customerUrl };
+
+    return new Promise((resolve, reject) => {
+      request(opt, (error, result, body) => {
+        if (error) {
+          return reject(
+            new HttpException('Request failed', HttpStatus.BAD_GATEWAY),
+          );
+        }
+
+        parseString(body, async (err, parsed) => {
+          if (!err && parsed && parsed.xmldata !== undefined) {
+            if (parsed.xmldata.Customers !== undefined) {
+              await this.prisma.customer.createMany({
+                data: parsed.xmldata.Customers,
+                skipDuplicates: true,
+              });
+
+              resolve({ status: 'updated' });
+            } else {
+              resolve({ status: 'already updated' });
+            }
+          } else {
+            // Replace with your mailHelper logic if needed
+            console.error('Volusion password may have expired');
+            resolve({ status: 'volusion password expired' });
+          }
+        });
+      });
+    });
   }
 }

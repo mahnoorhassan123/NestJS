@@ -2,6 +2,9 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCustomerDto } from '../dtos/customer.dto';
 import { createObjectCsvStringifier } from 'csv-writer';
+import * as bcrypt from 'bcryptjs';
+import { parseString } from 'xml2js';
+import * as request from 'request';
 
 @Injectable()
 export class CustomerService {
@@ -46,6 +49,35 @@ export class CustomerService {
       pages: Math.ceil(total / limit),
       data: customers,
     };
+  }
+
+  async getAllCustomer() {
+    try {
+      const customers = await this.prisma.customer.findMany();
+      return customers;
+    } catch (error) {
+      console.error('error fetching all customers', error);
+
+      throw new HttpException(
+        'Internal server error while fetching customers',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async getAllModalCustomer() {
+    try {
+      const customers = await this.prisma.customer.findMany({
+        where: { hide: false },
+      });
+      return customers;
+    } catch (error) {
+      console.error('error fetching all modal customers', error);
+      throw new HttpException(
+        'Internal server error while fetching customers',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   async getCustomerById(id: number) {
@@ -122,11 +154,49 @@ export class CustomerService {
     if (!customer) {
       throw new HttpException('Customer not found', HttpStatus.NOT_FOUND);
     }
+    const hashedPassword = await bcrypt.hash(password, 10);
     await this.prisma.customer.update({
       where: { id },
-      data: { password },
+      data: { password: hashedPassword },
     });
 
     return { succes: true, message: 'Updated Successfully' };
+  }
+
+  async syncCustomers(): Promise<any> {
+    const customerUrl =
+      'http://quggv.lmprq.servertrust.com/net/WebService.aspx?Login=developer@intrepidcs.com&EncryptedPassword=' +
+      process.env.VOLUSION_PASSWORD +
+      '&EDI_Name=Generic\\Customers&SELECT_Columns=CustomerID,BillingAddress1,BillingAddress2,City,CompanyName,Country,EmailAddress,FirstName,LastName,PostalCode,State,PhoneNumber';
+
+    const opt = { url: customerUrl };
+
+    return new Promise((resolve, reject) => {
+      request(opt, (error, result, body) => {
+        if (error) {
+          return reject(
+            new HttpException('Request failed', HttpStatus.BAD_GATEWAY),
+          );
+        }
+
+        parseString(body, async (err, parsed) => {
+          if (!err && parsed && parsed.xmldata !== undefined) {
+            if (parsed.xmldata.Customers !== undefined) {
+              await this.prisma.customer.createMany({
+                data: parsed.xmldata.Customers,
+                skipDuplicates: true,
+              });
+
+              resolve({ status: 'updated' });
+            } else {
+              resolve({ status: 'already updated' });
+            }
+          } else {
+            console.error('Volusion password may have expired');
+            resolve({ status: 'volusion password expired' });
+          }
+        });
+      });
+    });
   }
 }
