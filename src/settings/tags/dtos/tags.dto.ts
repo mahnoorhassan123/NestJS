@@ -37,5 +37,17 @@ export class CreateTagDto {
   @IsBoolean()
   @IsOptional()
   active: boolean = true;
+
+  @IsNotEmpty()
+  typeId: number;
+
+  @IsNotEmpty()
+  color: string;
+
+  @IsNotEmpty()
+  createdBy: string;
+
+  @IsNotEmpty()
+  updatedBy: string;
 }
 export class UpdateTagDto extends PartialType(CreateTagDto) {}
