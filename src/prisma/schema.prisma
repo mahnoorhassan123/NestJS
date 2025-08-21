@@ -145,6 +145,10 @@ model Tag {
   backgroundColor String
   type            TagType @default(Product)
   active          Boolean @default(true)
+  typeId          Int     @default(0)
+  color           String  @default("white")
+  createdBy       String  @default("system")
+  updatedBy       String  @default("system")
 
   @@map("tag")
 }
