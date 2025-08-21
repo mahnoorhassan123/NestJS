@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  admin
+  user
+  external
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  firstname          String?
+  lastname           String?
+  email              String    @unique
+  password           String?
+  usertype           UserType
+  orderExportColumns String?
+  lastPasUpdate      DateTime?
+  active             Boolean?  @default(true)
+  isBlocked          Boolean   @default(false)
+  blockMailSent      Boolean   @default(false)
+  token              String?
+  googleId           String?
+  profilePicture     String?
+  googleAcessToken   String?
+  CreatedAt          DateTime?
+  ModifiedBy         Int?
+  CreatedBy          Int?
+  ModifiedAt         DateTime?
+
+  activityLogs      ActivityLog[]
+  passwordHistories PasswordHistory[]
+
+  @@map("user")
+}
+
+enum ActivityType {
+  Store
+  BlueSky
+}
+
+model ActivityLog {
+  id           Int          @id @default(autoincrement())
+  userId       Int?
+  email        String?
+  firstname    String?
+  lastname     String?
+  url          String?
+  lastModifyOn DateTime?
+  ipAddress    String?
+  type         ActivityType
+  env          String?
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@map("activity_log")
+}
+
+model PasswordHistory {
+  id        Int      @id @default(autoincrement())
+  password  String
+  userId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("password_history")
+}
+
+model Customer {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  password        String
+  company         String
+  billingAddress1 String
+  billingAddress2 String   @default("")
+  city            String
+  postalCode      String
+  state           String
+  country         String
+  phoneNumber     String
+  discount        Float?   @default(0.0)
+  active          Boolean  @default(false)
+  hide            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("customer")
+}
+
+model EndUser {
+  id              Int      @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  company         String
+  billingAddress1 String
+  billingAddress2 String   @default("")
+  city            String
+  postalCode      String
+  state           String
+  country         String
+  phoneNumber     String
+  discount        Float?   @default(0.0)
+  external        Boolean  @default(false)
+  hide            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("end_user")
+}
+
+model Rma {
+  id               Int      @id @default(autoincrement())
+  sn               String   @unique
+  rmaNumber        String   @unique
+  device           String
+  po               String
+  receivedBy       String
+  issuedDate       DateTime
+  receivedDateTime DateTime
+  ready            Boolean
+  holdingTime      Int
+  extraInfo        String?
+
+  @@map("rma")
+}
+
+enum TagType {
+  Product
+  Reseller
+  Company
+}
+model Tag {
+  id              Int     @id @default(autoincrement())
+  title           String  @unique
+  description     String?
+  backgroundColor String
+  type            TagType @default(Product)
+  active          Boolean @default(true)
+
+  @@map("tag")
+}
+
+model File {
+  id    Int    @id @default(autoincrement())
+  title String @unique
+  URL   String
+
+  @@map("file")
+}
