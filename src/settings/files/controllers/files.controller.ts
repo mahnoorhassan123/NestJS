@@ -10,14 +10,17 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UploadedFile,
   UseInterceptors,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { FileService } from '../services/files.service';
 import { CreateFilesDto, UpdateFilesDto } from '../dtos/files.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { Request } from 'express';
 
 @Controller('settings/files')
 export class FileController {
@@ -47,11 +50,25 @@ export class FileController {
   )
   async createFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() body: { title: string },
+    @Body() body: { title: string; tableName: string; tableID?: string },
+    @Req() req: Request,
   ) {
+    const user = req['user'] as { id: number; firstname: string };
+    if (!user || !user.id) {
+      throw new UnauthorizedException('Valid user not found on request.');
+    }
+
+    const fileExt = extname(file.originalname).replace('.', '');
+
     const fullDto: CreateFilesDto = {
       title: body.title,
       URL: `http://localhost:3001/uploads/${file.filename}`,
+      fileExt: fileExt,
+      tableName: body.tableName,
+      // Note: I'm using 'tableId' here to match your corrected schema
+      tableId: body.tableID ? parseInt(body.tableID, 10) : 0,
+      // 2. Now it's safe to use user.id
+      createdBy: user.id,
     };
     return this.fileService.createFile(fullDto);
   }
@@ -63,6 +80,11 @@ export class FileController {
     @Query('q') q?: string,
   ) {
     return this.fileService.getFiles(page, limit, q);
+  }
+
+  @Get(':id')
+  async getFileById(@Param('id', ParseIntPipe) id: number) {
+    return this.fileService.getFileById(id);
   }
 
   @Patch(':id')

@@ -36,6 +36,7 @@ model User {
 
   activityLogs      ActivityLog[]
   passwordHistories PasswordHistory[]
+  files             File[]
 
   @@map("user")
 }
@@ -113,22 +114,46 @@ model EndUser {
   hide            Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  rmas            Rma[]
 
   @@map("end_user")
 }
 
 model Rma {
-  id               Int      @id @default(autoincrement())
-  sn               String   @unique
-  rmaNumber        String   @unique
-  device           String
-  po               String
-  receivedBy       String
-  issuedDate       DateTime
-  receivedDateTime DateTime
-  ready            Boolean
-  holdingTime      Int
-  extraInfo        String?
+  id                     Int       @id @default(autoincrement())
+  sn                     String    @unique
+  rmaNumber              String    @unique
+  device                 String
+  po                     String
+  receivedBy             String
+  issuedDate             DateTime
+  receivedDateTime       DateTime
+  ready                  Boolean
+  holdingTime            Int
+  extraInfo              String?
+  endUser                EndUser   @relation(fields: [endUserId], references: [id])
+  endUserId              Int
+  havePO                 Boolean   @default(false)
+  haveBoot               Boolean   @default(false)
+  haveCables             Boolean   @default(false)
+  haveSimCard            Boolean   @default(false)
+  haveSDCard             Boolean   @default(false)
+  haveSDcardSize         String?
+  haveOther              Boolean   @default(false)
+  haveOtherText          String?
+  vnet1                  String?
+  vnet2                  String?
+  vnet3                  String?
+  predefinedProblems     String?
+  notes                  String?
+  repairStatus           String    @default("New")
+  unitInfo               String?
+  replacedSN             String?
+  repairerName           String?
+  testedName             String?
+  finishedDayTime        DateTime?
+  shippingTrackingNumber String?
+  bugZilla               String?
 
   @@map("rma")
 }
@@ -138,25 +163,35 @@ enum TagType {
   Reseller
   Company
 }
+
 model Tag {
-  id              Int     @id @default(autoincrement())
-  title           String  @unique
+  id              Int      @id @default(autoincrement())
+  title           String   @unique
   description     String?
   backgroundColor String
-  type            TagType @default(Product)
-  active          Boolean @default(true)
-  typeId          Int     @default(0)
-  color           String  @default("white")
-  createdBy       String  @default("system")
-  updatedBy       String  @default("system")
+  type            TagType  @default(Product)
+  active          Boolean  @default(true)
+  typeId          Int      @default(0)
+  color           String   @default("white")
+  createdBy       String   @default("system")
+  updatedBy       String   @default("system")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt()
 
   @@map("tag")
 }
 
 model File {
-  id    Int    @id @default(autoincrement())
-  title String @unique
-  URL   String
+  id        Int      @id @default(autoincrement())
+  title     String   @unique
+  URL       String
+  tableName String
+  tableId   Int      @default(0)
+  fileExt   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [createdBy], references: [id])
+  createdBy Int
 
   @@map("file")
 }

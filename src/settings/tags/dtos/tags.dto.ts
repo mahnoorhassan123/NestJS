@@ -51,3 +51,17 @@ export class CreateTagDto {
   updatedBy: string;
 }
 export class UpdateTagDto extends PartialType(CreateTagDto) {}
+
+export class TagResponseDto {
+  id: string;
+  title: string;
+  description: string;
+  backgroundColor: string;
+  isActive: 1 | 0;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  color: string;
+  typeId: number;
+}
