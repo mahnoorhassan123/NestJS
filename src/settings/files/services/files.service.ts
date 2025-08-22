@@ -5,6 +5,7 @@ import { Prisma, User } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FileMapper } from '../mappers/files.mapper';
+import { createApiResponse } from 'src/common/helpers/response.helper';
 
 @Injectable()
 export class FileService {
@@ -37,11 +38,7 @@ export class FileService {
       data: fileData,
       include: { user: true },
     });
-
-    return {
-      message: 'File Saved!',
-      file: FileMapper.toDto(createdFile, createdFile.user),
-    };
+    return createApiResponse('File Saved.', createdFile.id);
   }
 
   async getFiles(page = 1, limit = 10, q?: string) {
@@ -100,16 +97,13 @@ export class FileService {
   async updateFile(id: number, data: UpdateFilesDto) {
     await this.prisma.file.findUniqueOrThrow({ where: { id } });
 
-    const updatedFile = await this.prisma.file.update({
+    await this.prisma.file.update({
       where: { id },
       data,
       include: { user: true },
     });
 
-    return {
-      message: 'File Updated',
-      file: FileMapper.toDto(updatedFile, updatedFile.user as User),
-    };
+    return createApiResponse('File Updated.');
   }
 
   async deleteFile(id: number) {
@@ -130,6 +124,6 @@ export class FileService {
     }
 
     await this.prisma.file.delete({ where: { id } });
-    return { message: 'File deleted successfully' };
+    return createApiResponse('File Deleted.');
   }
 }
