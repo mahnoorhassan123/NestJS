@@ -1,7 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
 import {
   IsBoolean,
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -29,10 +28,6 @@ export class CreateTagDto {
   @IsString()
   @IsNotEmpty()
   backgroundColor: string;
-
-  @IsEnum(TagType, { message: 'Tag type must be Product, Company, Reseller' })
-  @IsOptional()
-  type?: TagType;
 
   @IsBoolean()
   @IsOptional()
