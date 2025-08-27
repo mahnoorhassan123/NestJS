@@ -8,6 +8,7 @@ import { AuthMiddleware } from '../common/middleware/auth.middleware';
 @Module({
   controllers: [UserController],
   providers: [UserService, PrismaService, MailHelper],
+  exports: [UserService],
 })
 export class UserModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
