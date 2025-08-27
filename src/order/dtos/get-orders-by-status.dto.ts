@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsInt, IsBoolean, IsArray, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsArray,
+  IsDateString,
+} from 'class-validator';
 
 export class GetOrdersByStatusDto {
   @IsInt()

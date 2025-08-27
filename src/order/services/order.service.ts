@@ -39,22 +39,10 @@ import { Order, OrderDetail } from '@prisma/client';
 import { GetOrdersByStatusDto } from '../dtos/get-orders-by-status.dto';
 import { GetOrdersCSVDto } from '../dtos/get-orders-csv.dto';
 import { customHeadersMapping, shortHeaders } from '../constants';
-import { GetOrdersProductCSVDto } from '../dtos/get-orders-products-csv/dto';
-import {
-  mapGetOpenOrdersByProductId,
-  mapGetOrder,
-  mapGetOrderBySerial,
-  mapGetOrders,
-  mapGetOrdersCSV,
-  mapGetOrdersProductsCSV,
-  mapGetTrackShipping,
-  mapOrderDetails,
-  mapOrderDetailToInsert,
-  mapOrdersByOpenStatus,
-  mapOrdersByStatus,
-  mapToInsert,
-} from '../mappers/orders.mappers';
+import { GetOrdersProductCSVDto } from '../dtos/get-order-products-CSV.dto';
+
 import { SlackService } from 'src/common/services/slack.service';
+import { orderMappers } from '../mappers/orders.mappers';
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
@@ -686,7 +674,12 @@ export class OrderService {
             return name;
           })
           .join(',');
-        return mapOrdersByStatus(order, totalCount, tagName, paymentAmountSum);
+        return orderMappers.mapOrdersByStatus(
+          order,
+          totalCount,
+          tagName,
+          paymentAmountSum,
+        );
       });
 
       // Add totalData and totalPaymentAmount
@@ -814,22 +807,11 @@ export class OrderService {
       });
 
       // Transform the response to match the original query's structure
-      return orders.map((order) => mapOrdersByOpenStatus(order));
+      return orders.map((order) => orderMappers.mapOrdersByOpenStatus(order));
     } catch (error) {
       console.log(new Date(), 'Error fetching orders:', error.message);
       throw new HttpException(
         `Failed to fetch orders: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  async listOrdersByDate(body: any, res: Response) {
-    try {
-    } catch (error) {
-      console.error('Error occurred in listOrdersByDate:', error);
-      throw new HttpException(
-        'Failed to fetch orders by date',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -956,7 +938,7 @@ export class OrderService {
       });
 
       // Transform the response to match the original query's structure
-      return orders.map((order) => mapGetOrders(order));
+      return orders.map((order) => orderMappers.mapGetOrders(order));
     } catch (error) {
       console.error('error while fetching orders in getorders function', error);
       throw new HttpException(
@@ -1179,7 +1161,9 @@ export class OrderService {
       });
 
       // Format data
-      const formattedResult = orders.map((order) => mapGetOrdersCSV(order));
+      const formattedResult = orders.map((order) =>
+        orderMappers.mapGetOrdersCSV(order),
+      );
 
       // Set CSV headers
       const headers = query.isSmallReport ? shortHeaders : true;
@@ -1431,7 +1415,7 @@ export class OrderService {
 
       // Format data
       const formattedResult = orders.map((order) =>
-        mapGetOrdersProductsCSV(order),
+        orderMappers.mapGetOrdersProductsCSV(order),
       );
 
       // Set CSV headers
@@ -1520,7 +1504,7 @@ export class OrderService {
       const formattedData = await Promise.all(
         orders.map(async (order) => {
           const orderDetails = order.orderDetails.map((detail) =>
-            mapOrderDetails(detail),
+            orderMappers.mapOrderDetails(detail),
           );
 
           // Compute shippedQty for each detail
@@ -1535,7 +1519,7 @@ export class OrderService {
             detail.shippedQty = shippedQty;
           }
 
-          return mapGetOrder(order, notes, orderDetails);
+          return orderMappers.mapGetOrder(order, notes, orderDetails);
         }),
       );
 
@@ -1686,7 +1670,7 @@ export class OrderService {
         return [{ OrderNotFound: 'OrderNotFound', orderId: serialNo } as any];
       }
 
-      const formattedData = [mapGetOrderBySerial(order)];
+      const formattedData = [orderMappers.mapGetOrderBySerial(order)];
 
       // Compute shippedQty for each detail
       for (const detail of formattedData[0].orderDetails) {
@@ -2041,7 +2025,12 @@ export class OrderService {
         const matchedOrderDetail = orders[0].orderDetails.find(
           (detail) => detail.productCode === tracking.productCode,
         );
-        return mapGetTrackShipping(tracking, orders, matchedOrderDetail, notes);
+        return orderMappers.mapGetTrackShipping(
+          tracking,
+          orders,
+          matchedOrderDetail,
+          notes,
+        );
       });
 
       return formattedData;
@@ -2094,7 +2083,7 @@ export class OrderService {
       });
 
       const formattedData = orders.map((order) =>
-        mapGetOpenOrdersByProductId(order),
+        orderMappers.mapGetOpenOrdersByProductId(order),
       );
 
       return formattedData;
@@ -2490,7 +2479,7 @@ export class OrderService {
               OrderToInsert[key] = order[key];
             }
           }
-          const mappedToInsert = mapToInsert(OrderToInsert);
+          const mappedToInsert = orderMappers.mapToInsert(OrderToInsert);
           await this.prisma.order.upsert({
             where: { id: id }, // ORDER.ORDERID WAS BEING USED HERE
             create: mappedToInsert as Order,
@@ -2703,7 +2692,7 @@ export class OrderService {
                 }
               }
               const mappedOrderDetail =
-                mapOrderDetailToInsert(OrderDetailToInsert);
+                orderMappers.mapOrderDetailToInsert(OrderDetailToInsert);
               this.printObjectProperties(OrderDetailToInsert);
               await this.prisma.orderDetail.create({
                 data: mappedOrderDetail as OrderDetail,

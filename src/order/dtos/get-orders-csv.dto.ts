@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsArray, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  IsDateString,
+} from 'class-validator';
 
 export class GetOrdersCSVDto {
   @IsBoolean()

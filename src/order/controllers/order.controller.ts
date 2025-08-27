@@ -23,7 +23,7 @@ import { GetBackOrderDto, GetOrdersDto } from '../dtos/get-order.dto';
 import path from 'path';
 import { S3Service } from '../helpers/s3-upload-service';
 import { GetOrdersCSVDto } from '../dtos/get-orders-csv.dto';
-import { GetOrdersProductCSVDto } from '../dtos/get-orders-products-csv/dto';
+import { GetOrdersProductCSVDto } from '../dtos/get-order-products-CSV.dto';
 import axios from 'axios';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -36,7 +36,7 @@ export class OrderController {
     private readonly s3Service: S3Service,
     private readonly s3Client: S3Client,
     readonly defaultBucket: string,
-    private configService: ConfigService
+    private configService: ConfigService,
   ) {
     this.s3Client = new S3Client({
       credentials: {
@@ -314,9 +314,10 @@ export class OrderController {
           url,
           extension,
         );
-        return res
-          .status(HttpStatus.OK)
-          .json({ message: 'File uploaded successfully', url });
+        return res.status(HttpStatus.OK).json({
+          message: 'File uploaded successfully',
+          url,
+        });
       } else {
         return res
           .status(HttpStatus.INTERNAL_SERVER_ERROR)
