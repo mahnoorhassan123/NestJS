@@ -38,6 +38,10 @@ export class TagsController {
     return this.tagsService.createTag(createTagDto);
   }
 
+  @Get(':id')
+  async getTagById(@Param('id') id: string) {
+    return this.tagsService.getTagById(+id);
+  }
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   async updateTag(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {

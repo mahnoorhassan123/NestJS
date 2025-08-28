@@ -3,25 +3,37 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateTagDto, UpdateTagDto } from '../dtos/tags.dto';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { TagType } from '../dtos/tags.dto';
+import { TagMapper } from '../mappers/tags.mapper';
+import { createApiResponse } from 'src/common/helpers/response.helper';
 @Injectable()
 export class TagsService {
   constructor(private prisma: PrismaService) {}
+
   async createTag(data: CreateTagDto) {
     const existingTag = await this.prisma.tag.findUnique({
       where: { title: data.title },
     });
     if (existingTag)
-      throw new HttpException('This tag already exists', HttpStatus.CONFLICT);
+      throw new HttpException(
+        'Tag with this title already exists. Title must be different',
+        HttpStatus.CONFLICT,
+      );
     const createdTag = await this.prisma.tag.create({ data });
-    return { message: 'Tag Created', tag: createdTag };
+    return createApiResponse('Tag Saved.', createdTag.id);
+  }
+
+  async getTagById(id: number) {
+    const tag = await this.prisma.tag.findUnique({ where: { id } });
+    if (!tag) throw new HttpException('Tag Not Found!', HttpStatus.NOT_FOUND);
+    return TagMapper.toDto(tag);
   }
 
   async updateTag(id: number, data: UpdateTagDto) {
-    const existingTag = await this.prisma.tag.findUnique({ where: { id } });
-    if (!existingTag)
-      throw new HttpException('Tag not found', HttpStatus.NOT_FOUND);
-    const updatedTag = await this.prisma.tag.update({ where: { id }, data });
-    return { message: 'Tag Updated', tag: updatedTag };
+    const exists = await this.prisma.tag.findUnique({ where: { id } });
+    if (!exists)
+      throw new HttpException('Tag Not Found!', HttpStatus.NOT_FOUND);
+    await this.prisma.tag.update({ where: { id }, data });
+    return createApiResponse('Tag Updated.');
   }
 
   async deleteTag(id: number) {
@@ -29,7 +41,7 @@ export class TagsService {
     if (!existingTag)
       throw new HttpException('Tag not found', HttpStatus.NOT_FOUND);
     await this.prisma.tag.delete({ where: { id } });
-    return { message: 'Tag Deleted' };
+    return createApiResponse('Tag Deleted.');
   }
 
   async getTags(
@@ -47,8 +59,9 @@ export class TagsService {
       }),
       this.prisma.tag.count(),
     ]);
+    const mappedTags = tags.map((tag) => TagMapper.toDto(tag));
     return {
-      data: tags,
+      data: mappedTags,
       page,
       limit,
       total,
@@ -78,9 +91,9 @@ export class TagsService {
       }),
       this.prisma.tag.count({ where: whereClause }),
     ]);
-
+    const mappedTags = tags.map((tag) => TagMapper.toDto(tag));
     return {
-      data: tags,
+      data: mappedTags,
       page,
       limit,
       total,

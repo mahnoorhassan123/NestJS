@@ -7,12 +7,27 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateRmaDto, UpdateRmaDto } from '../dtos/rma.dto';
 import { Prisma } from '@prisma/client';
-
+import { RmaMapper } from '../mappers/rma.mapper';
+import { createApiResponse } from 'src/common/helpers/response.helper';
 @Injectable()
 export class RmaService {
   constructor(private prisma: PrismaService) {}
 
   async createRma(data: CreateRmaDto) {
+    const allUsersInDb = await this.prisma.endUser.findMany();
+    console.log('Users found by the application:', allUsersInDb);
+    console.log(
+      'Searching for endUserId:',
+      data.endUserId,
+      'Type:',
+      typeof data.endUserId,
+    );
+
+    const endUser = await this.prisma.endUser.findFirst({
+      where: { id: data.endUserId },
+    });
+    if (!endUser)
+      throw new HttpException('End User does not exist', HttpStatus.NOT_FOUND);
     const existingRma = await this.prisma.rma.findFirst({
       where: {
         OR: [{ sn: data.sn }, { rmaNumber: data.rmaNumber }],
@@ -34,14 +49,15 @@ export class RmaService {
     const issuedDate = new Date(data.issuedDate);
     const receivedDateTime = new Date(data.receivedDateTime);
 
-    const rma = await this.prisma.rma.create({
+    const createdRma = await this.prisma.rma.create({
       data: {
         ...data,
         issuedDate,
         receivedDateTime,
       },
+      include: { endUser: true },
     });
-    return { message: 'RMA Saved!', rma };
+    return createApiResponse('RMA Saved.', createdRma.id);
   }
 
   async getRmas(
@@ -54,20 +70,23 @@ export class RmaService {
   ) {
     const skip = (page - 1) * limit;
     const take = limit;
-
     const where = this.buildRmaSearchQuery(q, filters);
 
-    const totalRecords = await this.prisma.rma.count({ where });
+    const [rmas, totalRecords] = await Promise.all([
+      this.prisma.rma.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { [sortBy]: order },
+        include: { endUser: true },
+      }),
+      this.prisma.rma.count({ where }),
+    ]);
 
-    const rmas = await this.prisma.rma.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { [sortBy]: order },
-    });
+    const mappedRmas = rmas.map((rma) => RmaMapper.toDto(rma));
 
     return {
-      data: rmas,
+      data: mappedRmas,
       meta: {
         totalRecords,
         page,
@@ -117,11 +136,12 @@ export class RmaService {
   async getRmaById(id: number) {
     const rma = await this.prisma.rma.findUnique({
       where: { id },
+      include: { endUser: true },
     });
     if (!rma) {
       throw new NotFoundException(`RMA with ID ${id} not found.`);
     }
-    return rma;
+    return RmaMapper.toDto(rma);
   }
 
   async updateRma(id: number, data: UpdateRmaDto) {
@@ -157,11 +177,12 @@ export class RmaService {
     if (typeof data.receivedDateTime === 'string') {
       updateData.receivedDateTime = new Date(data.receivedDateTime);
     }
-    const updatedRma = await this.prisma.rma.update({
+    await this.prisma.rma.update({
       where: { id },
       data: updateData,
+      include: { endUser: true },
     });
-    return { message: 'RMA Saved!', rma: updatedRma };
+    return createApiResponse('RMA Updated.');
   }
   async deleteRma(id: number) {
     const existingRma = await this.prisma.rma.findUnique({ where: { id } });
@@ -170,6 +191,6 @@ export class RmaService {
     }
 
     await this.prisma.rma.delete({ where: { id } });
-    return { message: 'RMA deleted successfully.' };
+    return createApiResponse('RMA Deleted.');
   }
 }
