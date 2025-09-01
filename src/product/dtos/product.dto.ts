@@ -101,7 +101,7 @@ export class ProductDto {
   modifyOn?: Date;
 
   @ApiProperty({ required: false, type: String, format: 'date-time' })
-  @IsDate()
+  @IsString()
   @IsOptional()
   createdOn?: Date;
 
@@ -315,12 +315,12 @@ export class ProductDto {
   isMultiClassification?: boolean;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsInt()
   @IsOptional()
   createdBy?: string;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsInt()
   @IsOptional()
   modifiedBy?: string;
 }

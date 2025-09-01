@@ -22,7 +22,7 @@ export class ProductEntity {
   techSpecs?: string;
   hideProduct?: boolean;
   modifyOn?: Date;
-  createdOn?: Date;
+  createdOn?: string;
   stockStatus?: string;
   availability?: string;
   productPriceName?: string;
@@ -68,8 +68,8 @@ export class ProductEntity {
   gpn?: string;
   storeCategory: number;
   isMultiClassification?: boolean;
-  createdBy?: string;
-  modifiedBy?: string;
+  createdBy?: number;
+  modifiedBy?: number;
   
   details?: ProductDetailEntity[];
 }

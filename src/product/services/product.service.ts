@@ -30,19 +30,19 @@ export class ProductService {
       select: {
         ProductID: true;
         ProductCode: true;
-        isFeatured: true;
+        IsFeatured: true;
         HideProduct: true;
       };
     }>[] = await this.prisma.product.findMany({
       select: {
         ProductID: true,
         ProductCode: true,
-        isFeatured: true,
+        IsFeatured: true,
         HideProduct: true,
       },
       where: {
         isCompleted: true,
-        isDeleted: false,
+        IsDeleted: false,
       },
       orderBy: [
         { PriorityIndex: 'asc' },
@@ -80,8 +80,8 @@ export class ProductService {
     const subQueryFields = `
     product_class.Name AS ClassName, 
     product_subclass.Name AS SubClassName,
-    productClassId, 
-    productSubClassId
+    products.productClassId, 
+    products.productSubClassId
   `;
 
     const query = `
@@ -112,7 +112,7 @@ export class ProductService {
       products.FreeAccessories
     FROM products
     ${joins}
-    WHERE products.isDeleted = 0 AND products.isCompleted = 1
+    WHERE products.IsDeleted = 0 AND products.isCompleted = 1
     ${tagJoinCondition}
     GROUP BY products.ProductCode
     ORDER BY products.PriorityIndex, products.ProductID ASC;
@@ -131,6 +131,7 @@ export class ProductService {
       throw err;
     }
   }
+
 
 
   async getProduct(id: number) {
@@ -245,7 +246,7 @@ export class ProductService {
           ProductWeight: parseFloat(get('productweight') || 0),
           Hide_FreeAccessories: get('hide_freeaccessories') === '1',
           TaxableProduct: get('taxableproduct') === '1',
-          HideProduct: get('hideproduct') === '1',
+          HideProduct: get('hideproduct') === '1' ? "1" : "0",
           Availability: get('availability'),
           FreeAccessories: get('freeaccessories'),
           OptionIDs: get('optionids'),
@@ -269,8 +270,13 @@ export class ProductService {
           });
         } else {
           // Create new product
+          const xmlProductId = parseInt(get('ProductID'));
           product = await this.prisma.product.create({
-            data: { ProductCode: productCode, ...updateData },
+            data: {
+              ProductID: xmlProductId,
+              ProductCode: productCode,
+              ...updateData
+            },
           });
         }
 
@@ -297,12 +303,12 @@ export class ProductService {
               TableName: 'Product',
               ImageURL: img.ImageURL?.[0] || '',
               DisplayOrder: parseInt(img.DisplayOrder?.[0] || '0'),
-              isThumb: img.IsThumb?.[0] === '1',
+              IsThumb: img.IsThumb?.[0] === '1',
             },
             update: {
               ImageURL: img.ImageURL?.[0] || '',
               DisplayOrder: parseInt(img.DisplayOrder?.[0] || '0'),
-              isThumb: img.IsThumb?.[0] === '1',
+              IsThumb: img.IsThumb?.[0] === '1',
             },
           });
         }
@@ -380,17 +386,59 @@ export class ProductService {
       delete product.tags;
       delete product.tagsArray;
 
-      product.CreatedOn = new Date();
+      product.CreatedOn = new Date().toISOString();
 
       if (!product.ProductID) {
         product.CreatedBy = user.id;
       }
 
+      // fields stored as varchar(10) in DB (normalize to "1"/"0")
+      const varcharBooleanFields = ['HideProduct'];
+
+      // fields stored as real booleans in Prisma schema (normalize to true/false)
+      const prismaBooleanFields = ['HideWhenOutOfStock', 'IsActive', 'IsFeatured', 'isCompleted', 'isSerialAble', 'IsFreeProduct', 'backlog_show',
+        'holdForApproval', 'Accessory', 'Maintenance', 'Upgrade', 'Resale', 'isMultiClassification'];
+
+      // normalize varchar booleans → "1"/"0"
+      varcharBooleanFields.forEach(field => {
+        if (product[field] !== undefined && product[field] !== null) {
+          if (typeof product[field] === 'boolean') {
+            product[field] = product[field] ? "1" : "0";
+          } else if (typeof product[field] === 'number') {
+            product[field] = product[field] === 1 ? "1" : "0";
+          } else if (typeof product[field] === 'string') {
+            product[field] = ["true", "y", "1"].includes(product[field].toLowerCase()) ? "1" : "0";
+          }
+        }
+      });
+
+      // normalize Prisma booleans → true/false
+      prismaBooleanFields.forEach(field => {
+        if (product[field] !== undefined && product[field] !== null) {
+          if (typeof product[field] === 'string') {
+            product[field] = ["true", "y", "1"].includes(product[field].toLowerCase());
+          } else if (typeof product[field] === 'number') {
+            product[field] = product[field] === 1;
+          }
+        }
+      });
+
+
+      // normalize numeric fields before DB save
+      const intFields = ['PriorityIndex', 'productClassId', 'productSubClassId', 'BackupProductPrice', 'backlog_priority',];
+
+      intFields.forEach(field => {
+        if (product[field] !== undefined && product[field] !== null) {
+          product[field] = Number(product[field]);
+        }
+      });
+
+
       // Check if product with same ProductCode exists
       const existing = await this.prisma.product.findFirst({
         where: {
           ProductCode: product.ProductCode,
-          isDeleted: false,
+          IsDeleted: false,
         },
         orderBy: { ProductID: 'desc' },
       });
@@ -420,12 +468,43 @@ export class ProductService {
       delete product.originalSubclass;
       delete product.updatedDateBacklogComment;
 
+      // Allowed fields that actually exist in Prisma schema
+      const allowedFields = ['ProductID', 'ProductCode', 'ProductName', 'ProductDescriptionShort', 'ProductDescription', 'ProductNameShort', 'ProductPrice',
+        'ProductPriceYuan', 'ProductPriceYen', 'ProductPriceEuro', 'ProductPricePound', 'ProductPriceWON', 'ProductPriceINR', 'ProductWeight', 'FreeShippingItem',
+        'Photo_AltText', 'Hide_FreeAccessories', 'TaxableProduct', 'TechSpecs', 'HideProduct', 'ModifyOn', 'CreatedOn', 'StockStatus', 'Availability', 'ProductPrice_Name',
+        'ProductManufacturer', 'SalePrice_Name', 'Accessories', 'OptionIDs', 'FreeAccessories', 'ProductDetailURL', 'ExtInfo', 'ProductDescription_AbovePricing', 'ProductPhotoURL',
+        'Discount', 'METATAG_Description', 'METATAG_Keywords', 'PriorityIndex', 'HideWhenOutOfStock', 'IsActive', 'isCompleted', 'IsFeatured', 'TitleImage', 'isSerialAble',
+        'IsFreeProduct', 'HarmonizedCode', 'ExportControlClassificationNumber', 'UnitOfMeasure', 'CountryOfOrigin', 'ExportDescription', 'GroupId', 'backlog_priority',
+        'backlog_show', 'backlog_leadtime', 'backlog_comments', 'holdForApproval', 'Accessory', 'Maintenance', 'Upgrade', 'Resale', 'gpn', 'isMultiClassification', 'CreatedBy', 'ModifiedBy',
+      ];
+
+      const filteredData = Object.keys(product)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj, key) => {
+          obj[key] = product[key];
+          return obj;
+        }, {});
+
+
       // Upsert Product
+      const { productClassId, productSubClassId, ...rest } = product;
+
       await this.prisma.product.upsert({
         where: { ProductID: product.ProductID },
-        create: product,
-        update: product,
+        create: {
+          ProductID: product.ProductID,
+          ...filteredData,
+          ...(productClassId ? { productClass: { connect: { Id: productClassId } } } : {}),
+          ...(productSubClassId ? { productSubClass: { connect: { Id: productSubClassId } } } : {}),
+        },
+        update: {
+          ProductID: product.ProductID,
+          ...filteredData,
+          ...(productClassId ? { productClass: { connect: { Id: productClassId } } } : {}),
+          ...(productSubClassId ? { productSubClass: { connect: { Id: productSubClassId } } } : {}),
+        },
       });
+
 
       // Categories
       await this.prisma.productCategory.deleteMany({
@@ -449,7 +528,7 @@ export class ProductService {
         const tagData = tags.map((t) => ({
           tableId: product.ProductID,
           tableName: 'products',
-          tagid: t,
+          tagid: Number(t),
         }));
         await this.prisma.tagTable.createMany({ data: tagData });
       }
@@ -462,12 +541,26 @@ export class ProductService {
           ImageURL: f.replace('$$-', ''),
           IsThumb: f.includes('$$-'),
           CreatedAt: new Date(),
-          displayOrder: index,
+          DisplayOrder: index,
         }));
         await this.prisma.image.createMany({ data: imageData, skipDuplicates: true });
       }
 
-      return { status: true, msg: 'Product Saved', result: { ProductID: product.ProductID } };
+      return {
+        status: true,
+        msg: 'Product Saved.',
+        result: {
+          fieldCount: 0,
+          affectedRows: categories.length + tags.length + fileNames.length + 1,
+          insertId: product.ProductID,
+          serverStatus: 2,
+          warningCount: 0,
+          message: '',
+          protocol41: true,
+          changedRows: product.ProductID ? 1 : 0,
+        },
+      };
+
     } catch (error) {
       await this.slackService.send(
         `Error in saveProduct: ${error.message}`,
@@ -528,7 +621,7 @@ export class ProductService {
         // Upsert product
         await this.prisma.product.upsert({
           where: { ProductID: productId },
-          create: newData,
+          create: { ProductID: productId, ...newData },
           update: newData,
         });
 
@@ -757,7 +850,7 @@ export class ProductService {
     try {
       const products = await this.prisma.product.findMany({
         where: {
-          isDeleted: false,
+          IsDeleted: false,
           isCompleted: true,
         },
         orderBy: [
@@ -782,8 +875,8 @@ export class ProductService {
           CreatedOn: true,
           Discount: true,
           PriorityIndex: true,
-          isActive: true,
-          isFeatured: true,
+          IsActive: true,
+          IsFeatured: true,
           FreeAccessories: true,
         },
       });
@@ -826,7 +919,7 @@ export class ProductService {
     try {
       const records = await this.prisma.product.findMany({
         where: {
-          isDeleted: false,
+          IsDeleted: false,
           isCompleted: true,
         },
         orderBy: [
@@ -853,9 +946,9 @@ export class ProductService {
     try {
       const records = await this.prisma.product.findMany({
         where: {
-          isDeleted: false,
+          IsDeleted: false,
           isCompleted: true,
-          isActive: true,
+          IsActive: true,
           isSerialAble: true,
         },
         orderBy: [
@@ -888,14 +981,14 @@ export class ProductService {
     }
   }
 
-   async getProductSubClasses() {
+  async getProductSubClasses() {
     try {
       return await this.prisma.productSubClass.findMany({
         orderBy: { Id: 'asc' },
       });
     } catch (err) {
       const errorMessage = `File: product.service.ts, \nAction: getProductSubClasses, \nError ${err.message}`;
-      
+
       await this.slackService.send(errorMessage, 'J.A.R.V.I.S', 'C029PF7DLKE');
 
       this.logger.error('Error fetching product subclasses', err.message);
@@ -941,7 +1034,7 @@ export class ProductService {
     }
   }
 
-   async saveProductComments(data: any, user: any) {
+  async saveProductComments(data: any, user: any) {
     try {
       await this.prisma.product.update({
         where: { ProductID: data.ProductID },

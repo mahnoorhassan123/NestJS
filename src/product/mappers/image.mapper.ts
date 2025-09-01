@@ -10,7 +10,7 @@ export class ImageMapper {
       imageUrl: prismaImage.ImageURL,
       displayOrder: prismaImage.DisplayOrder,
       createdAt: prismaImage.CreatedAt,
-      isThumb: prismaImage.isThumb,
+      isThumb: prismaImage.IsThumb,
     };
   }
 
@@ -20,7 +20,7 @@ export class ImageMapper {
     ImageURL: image.imageUrl,
     DisplayOrder: image.displayOrder,
     CreatedAt: image.createdAt ?? undefined,
-    isThumb: image.isThumb ?? undefined,
+    IsThumb: image.isThumb ?? undefined,
     productDetail: image.tableId
       ? { connect: { ProductDetailID: image.tableId } }
       : undefined,

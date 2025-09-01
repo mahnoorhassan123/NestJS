@@ -23,8 +23,9 @@ export class ProductMapper {
       hideFreeAccessories: prismaProduct.Hide_FreeAccessories ?? undefined,
       taxableProduct: prismaProduct.TaxableProduct ?? undefined,
       techSpecs: prismaProduct.TechSpecs ?? undefined,
-      hideProduct: prismaProduct.HideProduct ?? undefined,
-      modifyOn: prismaProduct.ModifyOn ?? undefined,
+      hideProduct: prismaProduct.HideProduct
+        ? prismaProduct.HideProduct.toLowerCase() === 'true'
+        : undefined, modifyOn: prismaProduct.ModifyOn ?? undefined,
       createdOn: prismaProduct.CreatedOn ?? undefined,
       stockStatus: prismaProduct.StockStatus ?? undefined,
       availability: prismaProduct.Availability ?? undefined,
@@ -43,13 +44,13 @@ export class ProductMapper {
       metaTagKeywords: prismaProduct.METATAG_Keywords ?? undefined,
       priorityIndex: prismaProduct.PriorityIndex,
       hideWhenOutOfStock: prismaProduct.HideWhenOutOfStock,
-      isActive: prismaProduct.isActive,
+      isActive: prismaProduct.IsActive,
       isCompleted: prismaProduct.isCompleted ?? undefined,
-      isDeleted: prismaProduct.isDeleted,
-      isFeatured: prismaProduct.isFeatured,
+      isDeleted: prismaProduct.IsDeleted,
+      isFeatured: prismaProduct.IsFeatured,
       titleImage: prismaProduct.TitleImage ?? undefined,
       isSerialAble: prismaProduct.isSerialAble,
-      isFreeProduct: prismaProduct.isFreeProduct,
+      isFreeProduct: prismaProduct.IsFreeProduct,
       harmonizedCode: prismaProduct.HarmonizedCode ?? undefined,
       exportControlClassificationNumber: prismaProduct.ExportControlClassificationNumber ?? undefined,
       unitOfMeasure: prismaProduct.UnitOfMeasure ?? undefined,
@@ -78,6 +79,7 @@ export class ProductMapper {
 
   static toPersistence(product: ProductEntity): Prisma.ProductCreateInput {
     return {
+      ProductID: product.productId,
       ProductCode: product.productCode,
       ProductName: product.productName,
       ProductDescriptionShort: product.productDescriptionShort,
@@ -96,8 +98,9 @@ export class ProductMapper {
       Hide_FreeAccessories: product.hideFreeAccessories,
       TaxableProduct: product.taxableProduct,
       TechSpecs: product.techSpecs,
-      HideProduct: product.hideProduct,
-      ModifyOn: product.modifyOn,
+      HideProduct: product.hideProduct !== undefined
+        ? String(product.hideProduct)
+        : undefined, ModifyOn: product.modifyOn,
       CreatedOn: product.createdOn,
       StockStatus: product.stockStatus,
       Availability: product.availability,
@@ -116,13 +119,13 @@ export class ProductMapper {
       METATAG_Keywords: product.metaTagKeywords,
       PriorityIndex: product.priorityIndex,
       HideWhenOutOfStock: product.hideWhenOutOfStock,
-      isActive: product.isActive,
+      IsActive: product.isActive,
       isCompleted: product.isCompleted,
-      isDeleted: product.isDeleted,
-      isFeatured: product.isFeatured,
+      IsDeleted: product.isDeleted,
+      IsFeatured: product.isFeatured,
       TitleImage: product.titleImage,
       isSerialAble: product.isSerialAble,
-      isFreeProduct: product.isFreeProduct,
+      IsFreeProduct: product.isFreeProduct,
       HarmonizedCode: product.harmonizedCode,
       ExportControlClassificationNumber: product.exportControlClassificationNumber,
       UnitOfMeasure: product.unitOfMeasure,
@@ -157,13 +160,13 @@ export class ProductMapper {
   static toSummary(raw: {
     ProductID: number;
     ProductCode: string | null;
-    isFeatured: boolean;
-    HideProduct: boolean | null;
+    IsFeatured: boolean;
+    HideProduct: string | null;
   }): ProductEntity {
     return {
       productId: raw.ProductID,
       productCode: raw.ProductCode ?? undefined,
-      isFeatured: raw.isFeatured,
+      isFeatured: raw.IsFeatured,
       hideProduct: raw.HideProduct ?? undefined,
     } as ProductEntity;
   }
