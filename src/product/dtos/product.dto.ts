@@ -66,7 +66,7 @@ export class ProductDto {
   productWeight?: number;
 
   @ApiProperty({ required: false, type: Boolean })
-  @IsBoolean()
+  @IsString()
   @IsOptional()
   freeShippingItem?: boolean;
 
@@ -76,12 +76,12 @@ export class ProductDto {
   photoAltText?: string;
 
   @ApiProperty({ required: false, type: Boolean })
-  @IsBoolean()
+  @IsString()
   @IsOptional()
   hideFreeAccessories?: boolean;
 
   @ApiProperty({ required: false, type: Boolean })
-  @IsBoolean()
+  @IsString()
   @IsOptional()
   taxableProduct?: boolean;
 
@@ -90,25 +90,25 @@ export class ProductDto {
   @IsOptional()
   techSpecs?: string;
 
-  @ApiProperty({ required: false, type: Boolean })
-  @IsBoolean()
+  @ApiProperty({ required: false, type: String })
+  @IsString()
   @IsOptional()
-  hideProduct?: boolean;
+  hideProduct?: string;
 
   @ApiProperty({ required: false, type: String, format: 'date-time' })
-  @IsDate()
+  @IsString()
   @IsOptional()
   modifyOn?: Date;
 
   @ApiProperty({ required: false, type: String, format: 'date-time' })
   @IsString()
   @IsOptional()
-  createdOn?: Date;
+  createdOn?: string;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  stockStatus?: string;
+  stockStatus?: number;
 
   @ApiProperty({ required: false })
   @IsString()
@@ -291,12 +291,12 @@ export class ProductDto {
   resale: boolean;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsInt()
   @IsOptional()
   productClassId?: string;
 
   @ApiProperty({ required: false })
-  @IsString()
+  @IsInt()
   @IsOptional()
   productSubClassId?: string;
 

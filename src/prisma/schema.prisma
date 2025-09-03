@@ -178,15 +178,15 @@ model Product {
   ProductPriceWON                   Float     @default(0)
   ProductPriceINR                   Float     @default(0)
   ProductWeight                     Float?
-  FreeShippingItem                  Boolean?
+  FreeShippingItem                  String?
   Photo_AltText                     String?
-  Hide_FreeAccessories              Boolean?
-  TaxableProduct                    Boolean?
+  Hide_FreeAccessories              String?   @db.VarChar(10)
+  TaxableProduct                    String?   @db.VarChar(10)
   TechSpecs                         String?
   HideProduct                       String?   @db.VarChar(10)
-  ModifyOn                          DateTime?
-  CreatedOn                         String?    @db.MediumText
-  StockStatus                       String?
+  ModifyOn                          String?
+  CreatedOn                         String?   @db.MediumText
+  StockStatus                       Int?
   Availability                      String?
   ProductPrice_Name                 String?
   ProductManufacturer               String?

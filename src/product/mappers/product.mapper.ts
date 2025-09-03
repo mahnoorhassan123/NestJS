@@ -25,7 +25,8 @@ export class ProductMapper {
       techSpecs: prismaProduct.TechSpecs ?? undefined,
       hideProduct: prismaProduct.HideProduct
         ? prismaProduct.HideProduct.toLowerCase() === 'true'
-        : undefined, modifyOn: prismaProduct.ModifyOn ?? undefined,
+        : undefined, 
+      modifyOn: prismaProduct.ModifyOn ?? undefined,
       createdOn: prismaProduct.CreatedOn ?? undefined,
       stockStatus: prismaProduct.StockStatus ?? undefined,
       availability: prismaProduct.Availability ?? undefined,
@@ -100,7 +101,8 @@ export class ProductMapper {
       TechSpecs: product.techSpecs,
       HideProduct: product.hideProduct !== undefined
         ? String(product.hideProduct)
-        : undefined, ModifyOn: product.modifyOn,
+        : undefined, 
+      ModifyOn: product.modifyOn,
       CreatedOn: product.createdOn,
       StockStatus: product.stockStatus,
       Availability: product.availability,

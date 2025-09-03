@@ -15,6 +15,31 @@ import { ProductLogDto } from '../dtos/product-log.dto';
 import { ProductLogEntity } from '../entities/product-log.entity';
 import { ProductLogMapper } from '../mappers/product-log.mapper';
 
+type ProductSelected = Prisma.ProductGetPayload<{
+  select: {
+    ProductID: true;
+    ProductCode: true;
+    ProductName: true;
+    ProductDescriptionShort: true;
+    ProductDescription: true;
+    IsFeatured: true;
+    HideProduct: true;
+    ProductPhotoURL: true;
+    PriorityIndex: true;
+    IsActive: true;
+    isSerialAble: true;
+    isMultiClassification: true;
+    FreeAccessories: true;
+    Discount: true;
+    CreatedOn: true;
+    CountryOfOrigin: true;
+    UnitOfMeasure: true;
+    HarmonizedCode: true;
+    ExportDescription: true;
+    ExportControlClassificationNumber: true;
+  };
+}>;
+
 
 @Injectable()
 export class ProductService {
@@ -59,83 +84,67 @@ export class ProductService {
     };
   }
 
-  async getAllProducts(tags: string) {
-    let tagJoinCondition = '';
 
-    if (tags !== '-1') {
-      const queryTag = tags
-        .split(',')
-        .map((str) => Number(str))
-        .filter((id) => !isNaN(id));
-
-      tagJoinCondition = ` AND (t.tagid IN (${queryTag.toString()}) OR t.tagid IS NULL) `;
-    }
-
-    const joins = `
-    LEFT JOIN product_class ON products.productClassId = product_class.Id 
-    LEFT JOIN product_subclass ON products.productSubClassId = product_subclass.Id
-    LEFT JOIN tag_tables t ON products.ProductID = t.tableId
-  `;
-
-    const subQueryFields = `
-    product_class.Name AS ClassName, 
-    product_subclass.Name AS SubClassName,
-    products.productClassId, 
-    products.productSubClassId
-  `;
-
-    const query = `
-    SELECT 
-      products.ProductID,
-      ${subQueryFields}, 
-      products.ProductCode,
-      products.ProductName,
-      product_subclass.Name AS Product_Subclass,
-      products.OptionIDs,
-      products.ExportDescription,
-      products.CountryOfOrigin,
-      products.UnitOfMeasure,
-      products.ExportControlClassificationNumber,
-      products.HarmonizedCode,
-      products.ProductPhotoURL,
-      products.ProductDescriptionShort,
-      products.ProductPrice,
-      products.ProductWeight,
-      products.HideProduct,
-      products.CreatedOn,
-      products.Discount,
-      products.PriorityIndex,
-      products.IsActive,
-      products.isMultiClassification,
-      products.isSerialAble,
-      products.IsFeatured,
-      products.FreeAccessories
-    FROM products
-    ${joins}
-    WHERE products.IsDeleted = 0 AND products.isCompleted = 1
-    ${tagJoinCondition}
-    GROUP BY products.ProductCode
-    ORDER BY products.PriorityIndex, products.ProductID ASC;
-  `;
+  async getAllProducts(tags: string): Promise<{
+    status: boolean;
+    msg: string;
+    data: ProductSelected[];
+  }> {
 
     try {
-      return await this.prisma.$queryRawUnsafe(query);
+      const results: ProductSelected[] = await this.prisma.product.findMany({
+        select: {
+          ProductID: true,
+          ProductCode: true,
+          ProductName: true,
+          ProductDescriptionShort: true,
+          ProductDescription: true,
+          IsFeatured: true,
+          HideProduct: true,
+          ProductPhotoURL: true,
+          PriorityIndex: true,
+          IsActive: true,
+          isSerialAble: true,
+          isMultiClassification: true,
+          FreeAccessories: true,
+          Discount: true,
+          CreatedOn: true,
+          CountryOfOrigin: true,
+          UnitOfMeasure: true,
+          HarmonizedCode: true,
+          ExportDescription: true,
+          ExportControlClassificationNumber: true,
+        },
+        where: {
+          IsDeleted: false,
+          isCompleted: true,
+        },
+        distinct: ['ProductCode'],
+        orderBy: [
+          { PriorityIndex: 'asc' },
+          { ProductID: 'asc' },
+        ],
+      });
+
+      return {
+        status: true,
+        msg: 'success',
+        data: results,
+      };
     } catch (err) {
-      const errorMessage = JSON.stringify(err.message);
-      await this.slackService.send(
-        `File: products.service.ts\nAction: getAllProducts\nError: ${errorMessage}`,
-        'J.A.R.V.I.S',
-        'C029PF7DLKE',
+      this.logger.error(
+        `File: product.service.ts, Action: getAllProducts, Error: ${err?.message}`,
+        err?.stack,
       );
-      this.logger.error(`Error fetching products: ${err.message}`, err.stack);
-      throw err;
+      throw new InternalServerErrorException('Failed to fetch products');
     }
   }
 
 
 
   async getProduct(id: number) {
-    const query = `
+    try {
+      const records: any[] = await this.prisma.$queryRaw<any[]>`
       SELECT 
         p.*, 
         pc.CategoryID, 
@@ -149,21 +158,24 @@ export class ProductService {
       ORDER BY i.DisplayOrder ASC
     `;
 
-    try {
-      const records: any[] = await this.prisma.$queryRawUnsafe(query);
-
       if (records.length > 0) {
-        // Store category
-        const catQuery = `SELECT CategoryID FROM product_category WHERE ProductID = ${id} AND storeCat = 1`;
-        const catArray: any[] = await this.prisma.$queryRawUnsafe(catQuery);
+        // Store category (storeCat = 1)
+        const catArray: any[] = await this.prisma.$queryRaw<any[]>`
+        SELECT CategoryID 
+        FROM product_category 
+        WHERE ProductID = ${id} AND storeCat = 1
+      `;
 
         if (catArray?.length && catArray[0].CategoryID) {
           records[0].storeCat = catArray[0].CategoryID;
         }
 
         // Tags
-        const tagsQuery = `SELECT tagid FROM tag_tables WHERE tableId = ${id} AND tableName = 'products'`;
-        const tagsArray: any[] = await this.prisma.$queryRawUnsafe(tagsQuery);
+        const tagsArray: any[] = await this.prisma.$queryRaw<any[]>`
+        SELECT tagid 
+        FROM tag_tables 
+        WHERE tableId = ${id} AND tableName = 'products'
+      `;
 
         records[0].tagsArray = tagsArray ? tagsArray.map(t => t.tagid) : [];
       }
@@ -180,6 +192,7 @@ export class ProductService {
       throw err;
     }
   }
+
 
   async validateXmlFile(filePath: string, originalName: string) {
     try {
@@ -244,8 +257,8 @@ export class ProductService {
         const updateData = {
           ProductPrice: parseFloat(get('productprice') || 0),
           ProductWeight: parseFloat(get('productweight') || 0),
-          Hide_FreeAccessories: get('hide_freeaccessories') === '1',
-          TaxableProduct: get('taxableproduct') === '1',
+          Hide_FreeAccessories: get('hide_freeaccessories') === "1" ? "1" : "0",
+          TaxableProduct: get('taxableproduct') === "1" ? "1" : "0",
           HideProduct: get('hideproduct') === '1' ? "1" : "0",
           Availability: get('availability'),
           FreeAccessories: get('freeaccessories'),
@@ -575,18 +588,47 @@ export class ProductService {
     const productUrl = `http://quggv.lmprq.servertrust.com/net/WebService.aspx?Login=developer@intrepidcs.com&EncryptedPassword=${volusionPassword}&EDI_Name=Generic\\Products&SELECT_Columns=p.HideProduct,pm.METATAG_Keywords,pe.METATAG_Description,pm.ProductDescription_AbovePricing,pm.ExtInfo,pd.ProductDescription,p.IsChildOfProductCode,p.IsChildOfProductCode_ProductID,p.Options_Cloned_From,p.Options_Cloned_From_ProductID,p.ProductCode,p.ProductID,p.ProductName,p.StockStatus,pd.ProductDescriptionShort,pe.Availability,pe.Fixed_ShippingCost,pe.FreeShippingItem,pe.Hide_FreeAccessories,pe.ListPrice,pe.ListPrice_Name,pe.Photo_AltText,pe.PhotoURL_Large,pe.PhotoURL_Small,pe.ProductCategory,pe.ProductManufacturer,pe.ProductNameShort,pe.ProductPrice,pe.ProductPrice_Name,pe.ProductWeight,pe.SalePrice,pe.SalePrice_Name,pe.SelectedOptionIDs,pe.TaxableProduct,pe.UPC_code,pe.Vendor_Price,pm.TechSpecs`;
 
     try {
-      const response = await axios.get(productUrl);
-      const xmlBody = response.data;
+      this.logger.log(`[Volusion Sync] Starting sync for user ${userId}`);
+      this.logger.debug(`[Volusion Sync] Using password length: ${volusionPassword?.length}`);
+      this.logger.debug(`[Volusion Sync] Requesting URL: ${productUrl}`);
 
+      const response = await axios.get(productUrl, { timeout: 20000 });
+      this.logger.log(`[Volusion Sync] Response status: ${response.status}`);
+
+      if (!response.data) {
+        this.logger.error('[Volusion Sync] Empty response body');
+        return { status: 'empty response' };
+      }
+
+      this.logger.debug('[Volusion Sync] Raw XML snippet:', response.data.substring(0, 300));
+
+      const xmlBody = response.data;
       const parsed = await parseStringPromise(xmlBody);
+
+      this.logger.log(
+        `[Volusion Sync] Parsed XML keys: ${Object.keys(parsed || {}).join(', ')}`
+      );
+
       if (parsed?.xmldata?.Products && parsed.xmldata.Products.length > 0) {
+        this.logger.log(`[Volusion Sync] Found ${parsed.xmldata.Products.length} products`);
         await this.insertProducts(parsed.xmldata.Products, userId);
         return { status: 'updated' };
       } else {
+        this.logger.warn('[Volusion Sync] No products found in parsed XML');
         return { status: 'already updated' };
       }
     } catch (err: any) {
-      this.logger.error('Volusion sync error', err.message);
+      this.logger.error('[Volusion Sync] Error occurred:', err.message);
+      if (err.response) {
+        this.logger.error(
+          '[Volusion Sync] Error response:',
+          err.response.status,
+          err.response.statusText,
+          err.response.data?.substring?.(0, 500) || err.response.data
+        );
+      }
+      if (err.stack) this.logger.error('[Volusion Sync] Stack:', err.stack);
+
       await MailHelper.errorReport({
         subject: 'RMA Import Status',
         error: err.message || 'Volusion password expired or request failed',
@@ -594,6 +636,7 @@ export class ProductService {
       return { status: 'volusion password expired' };
     }
   }
+
 
   private async insertProducts(products: any[], userId: number) {
     for (const product of products) {
@@ -663,10 +706,22 @@ export class ProductService {
       const productPromise = productData
         ? this.prisma.product.upsert({
           where: { ProductID: productData.ProductID || 0 },
-          create: { ...productData, CreatedOn: new Date(), CreatedBy: userId },
-          update: { ...productData, ModifiedBy: userId },
+          create: {
+            ...productData,
+            IsActive: Boolean(productData.IsActive),
+            isCompleted: Boolean(productData.isCompleted),
+            CreatedOn: new Date().toISOString(),
+            CreatedBy: userId,
+          },
+          update: {
+            ...productData,
+            IsActive: Boolean(productData.IsActive),
+            isCompleted: Boolean(productData.isCompleted),
+            ModifiedBy: userId,
+          },
         })
         : Promise.resolve(null);
+
 
       // Save Product Details
       const detailPromise =
@@ -880,12 +935,17 @@ export class ProductService {
           FreeAccessories: true,
         },
       });
+
       return products;
     } catch (error: any) {
-      this.logger.error('Error fetching products for option categories', error.message);
-      throw error;
+      this.logger.error(
+        'Error fetching products for option categories',
+        error,
+      );
+      throw new InternalServerErrorException(error.message || 'Failed to fetch products');
     }
   }
+
 
   async getAllProductsActive() {
     try {
@@ -934,10 +994,7 @@ export class ProductService {
 
       return records.map((rec) => ProductMapper.toDomain(rec));
     } catch (err) {
-      this.logger.error(
-        `Error fetching products active/inactive: ${err.message}`,
-        err.stack,
-      );
+      this.logger.error('Error fetching products active/inactive', err);
       throw err;
     }
   }

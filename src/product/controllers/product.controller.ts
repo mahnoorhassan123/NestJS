@@ -32,14 +32,6 @@ export class ProductController {
     return this.productService.getAllProducts(tags);
   }
 
-  @Get('list/:id')
-  @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Get product by ID (protected)' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiResponse({ status: 200, type: ProductDto })
-  async getProduct(@Param('id') id: string) {
-    return this.productService.getProduct(+id);
-  }
 
   @Post('upload')
   @UseGuards(AuthGuard)
@@ -141,7 +133,7 @@ export class ProductController {
       body.productData || { IsActive: 0, isCompleted: 0 },
       body.productDetail || [],
       body.productImages || [],
-      user.id,
+      user,
     );
   }
 
@@ -150,7 +142,7 @@ export class ProductController {
   @ApiOperation({ summary: 'Remove product (protected)' })
   @ApiBody({ schema: { type: 'object', properties: { id: { type: 'number' } } } })
   async removeProduct(@Body() body: any, @Req() req: any) {
-    return this.productService.removeProduct(body, req.user);
+    return this.productService.removeProduct({ ProductID: body.id }, req['user']);
   }
 
 
@@ -161,8 +153,6 @@ export class ProductController {
   async simpleUpdate(@Req() req: Request, @Body() data: any) {
     return this.productService.simpleUpdateProduct(data, req['user']);
   }
-
-
   @Get('list/category-option')
   @ApiOperation({ summary: 'Get all products for option categories' })
   @ApiResponse({ status: 200, type: [ProductDto] })
@@ -171,7 +161,7 @@ export class ProductController {
   }
 
 
-  @Get('list')
+  @Get('list/active')
   @ApiOperation({ summary: 'Get all active products' })
   @ApiResponse({ status: 200, description: 'List of active products returned' })
   async getAllProductsActive() {
@@ -190,6 +180,15 @@ export class ProductController {
   @ApiResponse({ status: 200, type: [ProductDto] })
   async getAllSerialized() {
     return this.productService.getAllProductsActiveAndSerialized();
+  }
+
+  @Get('list/:id')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Get product by ID (protected)' })
+  @ApiParam({ name: 'id', type: Number })
+  @ApiResponse({ status: 200, type: ProductDto })
+  async getProduct(@Param('id') id: string) {
+    return this.productService.getProduct(+id);
   }
 
   @UseGuards(AuthGuard)
