@@ -36,6 +36,7 @@ model User {
 
   activityLogs      ActivityLog[]
   passwordHistories PasswordHistory[]
+  productLogs       ProductLog[]
 
   @@map("user")
 }
@@ -138,6 +139,7 @@ enum TagType {
   Reseller
   Company
 }
+
 model Tag {
   id              Int     @id @default(autoincrement())
   title           String  @unique
@@ -159,4 +161,193 @@ model File {
   URL   String
 
   @@map("file")
+}
+
+model Product {
+  ProductID                         Int       @id
+  ProductCode                       String?
+  ProductName                       String?
+  ProductDescriptionShort           String?
+  ProductDescription                String?
+  ProductNameShort                  String?
+  ProductPrice                      Float     @default(0)
+  ProductPriceYuan                  Float     @default(0)
+  ProductPriceYen                   Float     @default(0)
+  ProductPriceEuro                  Float     @default(0)
+  ProductPricePound                 Float     @default(0)
+  ProductPriceWON                   Float     @default(0)
+  ProductPriceINR                   Float     @default(0)
+  ProductWeight                     Float?
+  FreeShippingItem                  String?
+  Photo_AltText                     String?
+  Hide_FreeAccessories              String?   @db.VarChar(10)
+  TaxableProduct                    String?   @db.VarChar(10)
+  TechSpecs                         String?
+  HideProduct                       String?   @db.VarChar(10)
+  ModifyOn                          String?
+  CreatedOn                         String?   @db.MediumText
+  StockStatus                       Int?
+  Availability                      String?
+  ProductPrice_Name                 String?
+  ProductManufacturer               String?
+  SalePrice_Name                    String?
+  Accessories                       String?
+  OptionIDs                         String?
+  FreeAccessories                   String?
+  ProductDetailURL                  String?
+  ExtInfo                           String?
+  ProductDescription_AbovePricing   String?
+  ProductPhotoURL                   String?
+  Discount                          Float     @default(0)
+  METATAG_Description               String?
+  METATAG_Keywords                  String?
+  PriorityIndex                     Int       @default(1000)
+  HideWhenOutOfStock                Boolean   @default(false)
+  IsActive                          Boolean   @default(true)
+  isCompleted                       Boolean?  @default(true)
+  IsDeleted                         Boolean   @default(false)
+  IsFeatured                        Boolean   @default(false)
+  TitleImage                        String?
+  isSerialAble                      Boolean   @default(false)
+  IsFreeProduct                     Boolean   @default(false)
+  HarmonizedCode                    String?
+  ExportControlClassificationNumber String?   @default("EAR99")
+  UnitOfMeasure                     String?
+  CountryOfOrigin                   String?   @default("US")
+  ExportDescription                 String?
+  GroupId                           Int?
+  backlog_leadtime                  String?
+  backlog_comments                  String?
+  backlog_priority                  Int       @default(1000)
+  backlog_show                      Boolean   @default(false)
+  updatedDateBacklogComment         DateTime?
+  holdForApproval                   Boolean   @default(false)
+  Accessory                         Boolean   @default(false)
+  Maintenance                       Boolean   @default(false)
+  Upgrade                           Boolean   @default(false)
+  Resale                            Boolean   @default(false)
+  productClassId                    Int?
+  productSubClassId                 Int?
+  gpn                               String?
+  StoreCategory                     Int       @default(1)
+  isMultiClassification             Boolean?  @default(false)
+  CreatedBy                         Int?
+  ModifiedBy                        Int?
+
+  details         ProductDetail[]
+  productLogs     ProductLog[]
+  productClass    ProductClass?    @relation(fields: [productClassId], references: [Id])
+  productSubClass ProductSubClass? @relation(fields: [productSubClassId], references: [Id])
+  tagTables       TagTable[]
+
+  @@map("products")
+}
+
+model ProductDetail {
+  ProductDetailID Int       @id @default(autoincrement())
+  ProductID       Int
+  Name            String
+  URL             String
+  isActive        Boolean   @default(true)
+  CreatedAt       DateTime?
+
+  product Product @relation(fields: [ProductID], references: [ProductID])
+  images  Image[] @relation("DetailImages")
+
+  @@map("product_details")
+}
+
+model Image {
+  ID           Int       @id @default(autoincrement())
+  TableID      Int
+  TableName    String
+  ImageURL     String
+  DisplayOrder Int       @default(0)
+  CreatedAt    DateTime?
+  IsThumb      Boolean?
+
+  productDetail ProductDetail? @relation("DetailImages", fields: [TableID], references: [ProductDetailID])
+
+  @@map("images")
+}
+
+model ProductClass {
+  Id       Int       @id @default(autoincrement())
+  Name     String
+  products Product[]
+
+  @@map("product_class")
+}
+
+model ProductSubClass {
+  Id       Int       @id @default(autoincrement())
+  Name     String
+  products Product[]
+
+  @@map("product_subclass")
+}
+
+model ProductLog {
+  id         Int      @id @default(autoincrement())
+  product_id Int?
+  operation  String?
+  timestamp  DateTime @default(now())
+  user_id    Int?
+  old_data   Json?
+  new_data   Json?
+
+  user    User?    @relation(fields: [user_id], references: [id])
+  product Product? @relation(fields: [product_id], references: [ProductID])
+
+  @@map("products_log")
+}
+
+model ProductCategory {
+  ID         Int      @id @default(autoincrement())
+  CategoryID Int
+  ProductID  Int
+  CreatedAt  DateTime @default(now())
+  storeCat   Int      @default(0)
+
+  @@map("product_category")
+}
+
+model OptionCategories {
+  id                        Int       @id @default(autoincrement())
+  headingGroup              String?
+  optionCategoriesDesc      String    @default("")
+  isRequired                Boolean
+  displayType               String?
+  arrangeOptionCategoriesBy Int       @default(0)
+  lastModified              DateTime?
+  lastModBy                 Int
+  hideOptionCategoriesDesc  Boolean   @default(false)
+  includeInSearchRefinement Boolean   @default(false)
+  aboutOptionCategories     String?
+  useGoogleSize             Boolean   @default(false)
+  useGoogleColor            Boolean   @default(false)
+  useGoogleMaterial         Boolean   @default(false)
+  useGooglePattern          Boolean   @default(false)
+  index                     Int?      @map("$index")
+  createdAt                 DateTime? @default(now())
+  createdBy                 Int?
+
+  @@map("option_categories")
+}
+
+enum TableEnum {
+  customers
+  orders
+  quotes
+  products
+}
+
+model TagTable {
+  id        Int        @id @default(autoincrement())
+  tableName TableEnum?
+  tableId   Int
+  tagid     Int
+  product   Product?   @relation(fields: [tableId], references: [ProductID])
+
+  @@map("tag_tables")
 }
