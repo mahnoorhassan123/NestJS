@@ -1,4 +1,4 @@
-import { MailHelper } from './mail.helper';
+import { MailHelper } from '../../user/helpers/mail.helper';
 import * as nodemailer from 'nodemailer';
 
 jest.mock('nodemailer');
@@ -55,11 +55,15 @@ describe('MailHelper', () => {
         from: '"Intrepidcs" <no-reply@intrepidcs.com>',
         to: options.to,
         subject: options.subject,
-        html: expect.stringContaining(`Dear ${options.firstName} ${options.lastName}`),
+        html: expect.stringContaining(
+          `Dear ${options.firstName} ${options.lastName}`,
+        ),
       });
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining(`<a href="${options.link}">${options.link}</a>`),
+          html: expect.stringContaining(
+            `<a href="${options.link}">${options.link}</a>`,
+          ),
         }),
       );
     });
@@ -86,7 +90,9 @@ describe('MailHelper', () => {
       );
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining(`<a href="${options.link}">${options.link}</a>`),
+          html: expect.stringContaining(
+            `<a href="${options.link}">${options.link}</a>`,
+          ),
         }),
       );
     });
@@ -108,12 +114,16 @@ describe('MailHelper', () => {
         expect.objectContaining({
           to: options.to,
           subject: options.subject,
-          html: expect.stringContaining('Your account has been blocked due to multiple failed login attempts'),
+          html: expect.stringContaining(
+            'Your account has been blocked due to multiple failed login attempts',
+          ),
         }),
       );
       expect(sendMailMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          html: expect.stringContaining(`<a href="${options.link}">${options.link}</a>`),
+          html: expect.stringContaining(
+            `<a href="${options.link}">${options.link}</a>`,
+          ),
         }),
       );
     });

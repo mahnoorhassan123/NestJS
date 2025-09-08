@@ -7,7 +7,7 @@ import {
   LoginAuthDto,
 } from '../dtos/user.dto';
 import * as bcrypt from 'bcryptjs';
-import { MailHelper } from '../helpers/mail.helper';
+import { MailHelper } from '../../common/services/mail.helper';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ActivityType } from '@prisma/client';
 import { UserEntity } from '../entities/user.entity';

@@ -13,26 +13,34 @@ import {
   ParseIntPipe,
   HttpException,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response, Request } from 'express';
 import { OrderService } from '../services/order.service';
 import { CreateFileDto } from '../dtos/create-file.dto';
 import { UpdateQuoteFileDto } from '../dtos/update-quote-file.dto';
-import { GetBackOrderDto, GetOrdersDto } from '../dtos/get-order.dto';
+import { DatesDto, GetBackOrderDto, GetOrdersDto } from '../dtos/get-order.dto';
 import path from 'path';
-import { S3Service } from '../helpers/s3-upload-service';
+import { S3Service } from '../../common/services/s3-upload.service';
 import { GetOrdersCSVDto } from '../dtos/get-orders-csv.dto';
 import { GetOrdersProductCSVDto } from '../dtos/get-order-products-CSV.dto';
-import axios from 'axios';
+import axios, { HttpStatusCode } from 'axios';
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@nestjs/config';
+import { CreateOrderDto } from '../dtos/create-order.dto';
+import { SearchOrdersDto } from '../dtos/search-by-status.dto';
+import { GetOrdersByStatusDto } from '../dtos/get-orders-by-status.dto';
+import { SearchParamsDto } from '../dtos/search.dto';
+import { OrderSnapshotService } from '../services/order-snapshot.service';
 
 @Controller('order')
 export class OrderController {
   constructor(
     private readonly orderService: OrderService,
+    private readonly orderSnapshotService: OrderSnapshotService,
+
     private readonly s3Service: S3Service,
     private readonly s3Client: S3Client,
     readonly defaultBucket: string,
@@ -53,26 +61,42 @@ export class OrderController {
   // ----------------- ORDER ON VOLUSION -----------------
   @Post('order-on-volusion')
   async orderOnVolusion(@Body() body, @Res() res: Response) {
-    return this.orderService.orderOnVolusion(body, res);
+    try {
+      return this.orderService.orderOnVolusion(body.data, res);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
   }
 
   // ----------------- SYNC -----------------
   @Get('sync')
   async sync(@Res() res: Response) {
-    return this.orderService.sync(res);
+    try {
+      return this.orderService.sync(res);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
   }
 
   @Get('/list/open/:productId')
   async getOpenOrderByProductId(@Param('productId') productId: string) {
-    return this.orderService.getOpenOrderByProductId(+productId);
+    try {
+      return this.orderService.getOpenOrderByProductId(+productId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   // ----------------- ORDER ON BLUE SKY -----------------
   @Post('order-on-blue-sky')
-  async orderOnBlueSky(@Body() body: any, @Res() res: Response) {
+  async orderOnBlueSky(@Body() body: CreateOrderDto, @Res() res: Response) {
     try {
       // parse InvoiceableOn date
-      body.InvoiceableOn = new Date(body.InvoiceableOn);
+      // body.InvoiceableOn = new Date(body.InvoiceableOn);
       const order = { ...body };
 
       // check for duplicate quote
@@ -90,7 +114,7 @@ export class OrderController {
       // if OrderID exists → snapshot also
       if (body.OrderID) {
         const result = await this.orderService.InsertOrders(order);
-        // await this.orderService.addOrderSnapshot(order);
+        await this.orderSnapshotService.addOrderSnapshot(order);
         return res.json(result);
       } else {
         const result = await this.orderService.InsertOrders(order);
@@ -104,18 +128,34 @@ export class OrderController {
   // ----------------- ORDER PACKAGES -----------------
   @Get('order-packages/:orderId')
   async getOrderPackages(@Param('orderId', ParseIntPipe) orderId: number) {
-    return this.orderService.getOrderPackages(orderId);
+    try {
+      return this.orderService.getOrderPackages(orderId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   // ----------------- ORDER TRACK -----------------
   @Get('order-track/:orderId')
   async getOrderTrack(@Param('orderId') orderId: string) {
-    return this.orderService.GetOrderTrack(Number(orderId));
+    try {
+      return this.orderService.GetOrderTrack(Number(orderId));
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Delete('delete-order-track/:id')
-  async deleteOrderTrack(@Param('id') id: string) {
-    return this.orderService.deleteOrderTrack(+id);
+  async deleteOrderTrack(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const result = await this.orderService.deleteOrderTrack(+id);
+      const status: HttpStatusCode = result.status
+        ? HttpStatusCode.Ok
+        : HttpStatusCode.InternalServerError;
+      res.status(status).json(result);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   // ----------------- LIST ORDERS -----------------
@@ -147,36 +187,57 @@ export class OrderController {
   }
 
   @Post('list')
-  async listOrdersByDate(@Body() body, @Res() res: Response) {
-    let startDate = new Date(body.startDate.split('T')[0]);
-    let endDate = new Date(body.endDate.split('T')[0]);
-    let startTime =
-      startDate.getFullYear() +
-      '/' +
-      (startDate.getMonth() + 1) +
-      '/' +
-      startDate.getDate() +
-      ' 12:00:00 AM';
-    let endTime =
-      endDate.getFullYear() +
-      '/' +
-      (endDate.getMonth() + 1) +
-      '/' +
-      endDate.getDate() +
-      ' 11:59:59 PM';
-    let query = { startTime: startTime, endTime: endTime };
-    return this.orderService.GetOrders(query);
+  async listOrdersByDate(@Body() body: DatesDto, @Res() res: Response) {
+    try {
+      let startDate = body.startDate
+        ? new Date(body.startDate.split('T')[0])
+        : new Date();
+      let endDate = body.endDate
+        ? new Date(body.endDate.split('T')[0])
+        : new Date();
+      let startTime =
+        startDate.getFullYear() +
+        '/' +
+        (startDate.getMonth() + 1) +
+        '/' +
+        startDate.getDate() +
+        ' 12:00:00 AM';
+      let endTime =
+        endDate.getFullYear() +
+        '/' +
+        (endDate.getMonth() + 1) +
+        '/' +
+        endDate.getDate() +
+        ' 11:59:59 PM';
+      let query = { startTime: startTime, endTime: endTime };
+      return this.orderService.GetOrders(query);
+    } catch (error) {
+      return res
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ error: error.message });
+    }
   }
 
   @Post('listByStatus')
-  async listByStatus(@Body() body) {
-    return this.orderService.GetOrdersByStatus(body);
+  async listByStatus(
+    @Body() body: GetOrdersByStatusDto,
+    @Query() param: SearchParamsDto,
+  ) {
+    try {
+      return await this.orderService.GetOrdersByStatus(body, param);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('getOrdersCSV')
-  async getOrdersCSV(@Body() body: GetOrdersCSVDto, @Res() res: Response) {
+  async getOrdersCSV(
+    @Body() body: GetOrdersByStatusDto,
+    @Query() param: SearchParamsDto,
+    @Res() res: Response,
+  ) {
     try {
-      await this.orderService.getOrdersCSV(body, res);
+      await this.orderService.getOrdersCSV(body, param, res);
     } catch (error) {
       res
         .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -186,11 +247,12 @@ export class OrderController {
 
   @Post('getOrdersProductCSV')
   async getOrdersProductCSV(
-    @Body() body: GetOrdersProductCSVDto,
+    @Body() body: GetOrdersByStatusDto,
+    @Query() param: SearchParamsDto,
     @Res() res: Response,
   ) {
     try {
-      await this.orderService.getOrdersProductCSV(body, res);
+      await this.orderService.getOrdersProductCSV(body, param, res);
     } catch (error) {
       console.error('get orders product csv', error);
       res
@@ -216,27 +278,47 @@ export class OrderController {
   // ----------------- GET ORDER -----------------
   @Get('get/:orderId')
   async getOrder(@Param('orderId') orderId: string) {
-    return this.orderService.getOrder(+orderId);
+    try {
+      return this.orderService.getOrder(+orderId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('files/:orderId')
   async getOrderFiles(@Param('orderId') orderId: string) {
-    return this.orderService.getAttachedFiles(Number(orderId));
+    try {
+      return this.orderService.getAttachedFiles(Number(orderId));
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('files/for/quotes/:quoteId')
   async getAttachedFilesForQuotes(@Param('quoteId') quoteId: string) {
-    return this.orderService.getAttachedFilesForQuotes(Number(quoteId));
+    try {
+      return this.orderService.getAttachedFilesForQuotes(Number(quoteId));
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('save/orderNo/for/quotes')
   async saveOrderNoForQuotes(@Body() dto: UpdateQuoteFileDto) {
-    return this.orderService.saveOrderNoForQuotes(dto.orderId, dto.quoteId);
+    try {
+      return this.orderService.saveOrderNoForQuotes(dto.orderId, dto.quoteId);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('get-by-serial/:serialNo')
   async getBySerial(@Param('serialNo') serialNo: string) {
-    return this.orderService.getOrderBySerial({ serialNo });
+    try {
+      return this.orderService.getOrderBySerial({ serialNo });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('get-backorder-sheet')
@@ -260,7 +342,11 @@ export class OrderController {
   // ----------------- FILES -----------------
   @Get('delete/file/:id')
   async deleteFile(@Param('id') id: string) {
-    return this.orderService.deleteFile(+id);
+    try {
+      return this.orderService.deleteFile(+id);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Post('upload/:orderId')
@@ -335,7 +421,11 @@ export class OrderController {
   async checkIfQuoteAlreadyAttached(
     @Param('quoteNo', ParseIntPipe) quoteNo: number,
   ) {
-    return this.orderService.checkIfQuoteAlreadyAttached(quoteNo);
+    try {
+      return this.orderService.checkIfQuoteAlreadyAttached(quoteNo);
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @Get('download/:id')

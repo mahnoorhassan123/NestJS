@@ -13,6 +13,31 @@ enum UserType {
   external
 }
 
+enum ActivityType {
+  Store
+  BlueSky
+}
+
+enum ProductSerialStatus {
+  allocated
+  unAllocated
+  shipped
+}
+
+enum ProductSerialType {
+  products
+  groups
+}
+
+enum OrderType {
+  Customer
+  ICSInternational
+  Demo
+  Loan
+  InternalUse
+  RMA
+}
+
 model User {
   id                  Int      @id @default(autoincrement())
   firstname           String?  
@@ -33,24 +58,17 @@ model User {
   ModifiedBy         Int?
   CreatedBy          Int?
   ModifiedAt         DateTime?
-
   activityLogs       ActivityLog[]
   passwordHistories  PasswordHistory[] 
   attachedFiles      AttachedFile[] @relation("UploadedBy")
   orders             Order[]        @relation("OrderedBy")
-  ordersShipped             Order[]        @relation("ShippedBy")
+  ordersShipped      Order[]        @relation("ShippedBy")
   quotes             Quote[]        @relation("OrderedBy")
-   OrdersSnapshot OrdersSnapshot[] @relation("ModifiedBy")
-  Order Order[] @relation("ModifiedBy")
-  ProductLog ProductLog[]
+  OrdersSnapshot     OrdersSnapshot[] @relation("ModifiedBy")
+  Order              Order[] @relation("ModifiedBy")
+  ProductLog         ProductLog[]
+  Quote              Quote[] @relation("ModifiedBy")
   @@map("user")
- 
-}
-
-
-enum ActivityType {
-  Store
-  BlueSky
 }
 
 model ActivityLog {
@@ -65,7 +83,6 @@ model ActivityLog {
   type          ActivityType 
   env           String?
   user          User?    @relation(fields: [userId], references: [id])
-
   @@map("activity_log")
 }
 
@@ -74,9 +91,7 @@ model PasswordHistory {
   password   String
   userId     Int
   createdAt  DateTime @default(now())
-
   user       User     @relation(fields: [userId], references: [id])
-
   @@map("password_history") 
 }
 
@@ -103,7 +118,7 @@ model Customer {
   modifiedBy      Int?
   orders          Order[]  @relation("CustomerOrders")
   salesRepOrders  Order[]  @relation("SalesRepOrders")
-
+  Quote           Quote[] @relation("QuoteCustomer")
   @@map("customer")
 }
 
@@ -128,7 +143,6 @@ model EndUser {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   orders          Order[]  @relation("EndUserOrders")  
-
   @@map("end_user")
 }
 
@@ -140,14 +154,13 @@ model AttachedFile {
   type        String
   file        String
   extension   String
-  uploadedBy  Int
+  uploadedBy  Int?
   uploadedAt  DateTime @default(now())
   isDeleted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   order       Order?   @relation(fields: [orderId], references: [id])
-  quote       Quote?   @relation(fields: [quoteId], references: [id])
-  user        User     @relation("UploadedBy", fields: [uploadedBy], references: [id])
-
+  quote       Quote?   @relation(fields: [quoteId], references: [QuoteNo])
+  user        User?    @relation("UploadedBy", fields: [uploadedBy], references: [id])
   @@map("attached_files")
 }
 
@@ -167,7 +180,6 @@ model OrderTrackingNo {
   isImported      Boolean?                 @default(false)  
   order           Order?                   @relation(fields: [orderId], references: [id])
   lineItems       TrackingShippingLineItem[]
-
   @@map("order_tracking_no")
 }
 
@@ -186,7 +198,6 @@ model TrackingShippingLineItem {
   updatedAt       DateTime        @updatedAt
   updatedBy       Int?
   tracking        OrderTrackingNo @relation(fields: [trackShippingId], references: [id])
-
   @@map("tracking_shipping_lineitems")
 }
 
@@ -198,24 +209,231 @@ model OrderPackage {
   price     Float?
   createdAt DateTime @default(now())
   order     Order    @relation(fields: [orderId], references: [id])
-
   @@map("order_packages")
 }
-
 model OrdersSnapshot {
-  id            Int      @id @default(autoincrement())
-  orderId       Int
-  orderComments String?
-  orderNotes    String?
-  lastModBy     Int?
-  lastModified  DateTime?
-  order         Order?   @relation(fields: [orderId], references: [id])
-  modifiedBy    User?    @relation("ModifiedBy", fields: [lastModBy], references: [id])  
-
+  id                             Int       @id @default(autoincrement())
+  OrderID                        Int       @map("OrderID")
+  AccountNumber                  String?   @map("AccountNumber") @db.VarChar(50)
+  AccountType                    String?   @map("AccountType") @db.VarChar(50)
+  AddressValidated               String?   @map("AddressValidated") @db.VarChar(50)
+  Affiliate_Commissionable_Value Float?    @map("Affiliate_Commissionable_Value")
+  OrderTaxExempt                 Boolean   @map("OrderTaxExempt") @default(false)
+  AuthHash                       String?   @map("AuthHash") @db.VarChar(100)
+  AVS                            String?   @map("AVS") @db.VarChar(10)
+  BankName                       String?   @map("BankName") @db.VarChar(100)
+  BatchNumber                    Int?      @map("BatchNumber")
+  BillingAddress1                String?   @map("BillingAddress1") @db.VarChar(100)
+  BillingAddress2                String?   @map("BillingAddress2") @db.VarChar(100)
+  BillingCity                    String?   @map("BillingCity") @db.VarChar(50)
+  BillingCompanyName             String?   @map("BillingCompanyName") @db.VarChar(100)
+  BillingCountry                 String?   @map("BillingCountry") @db.VarChar(2)
+  BillingFaxNumber               String?   @map("BillingFaxNumber") @db.VarChar(20)
+  BillingFirstName               String?   @map("BillingFirstName") @db.VarChar(50)
+  BillingLastName                String?   @map("BillingLastName") @db.VarChar(50)
+  BillingPhoneNumber             String?   @map("BillingPhoneNumber") @db.VarChar(20)
+  BillingPostalCode              String?   @map("BillingPostalCode") @db.VarChar(10)
+  BillingState                   String?   @map("BillingState") @db.VarChar(50)
+  CancelDate                     String?   @map("CancelDate") @db.VarChar(30)
+  CancelReason                   String?   @map("CancelReason") @db.Text
+  CardHoldersName                String?   @map("CardHoldersName") @db.VarChar(100)
+  CashTender                     Float?    @map("CashTender")
+  CC_Last4                       String?   @map("CC_Last4") @db.VarChar(4)
+  CheckNumber                    String?   @map("CheckNumber") @db.VarChar(20)
+  CreditCardAuthorizationDate    String?   @map("CreditCardAuthorizationDate") @db.VarChar(30)
+  CreditCardAuthorizationNumber  String?   @map("CreditCardAuthorizationNumber") @db.VarChar(50)
+  CreditCardExpDate              String?   @map("CreditCardExpDate") @db.VarChar(10)
+  CreditCardIssueDate            String?   @map("CreditCardIssueDate") @db.VarChar(10)
+  CreditCardIssueNumber          String?   @map("CreditCardIssueNumber") @db.VarChar(10)
+  CreditCardTransactionID        String?   @map("CreditCardTransactionID") @db.VarChar(50)
+  CreditCardAuthorizationHash    String?   @map("CreditCardAuthorizationHash") @db.Text
+  Custom_Field_CarrierAcctNo     String?   @map("Custom_Field_CarrierAcctNo") @db.VarChar(50)
+  Custom_Field_Custom2           String?   @map("Custom_Field_Custom2") @db.VarChar(50)
+  Custom_Field_Custom3           String?   @map("Custom_Field_Custom3") @db.VarChar(50)
+  Custom_Field_Custom4           String?   @map("Custom_Field_Custom4") @db.VarChar(50)
+  Custom_Field_Custom5           String?   @map("Custom_Field_Custom5") @db.VarChar(50)
+  Customer_IPAddress             String?   @map("Customer_IPAddress") @db.VarChar(45)
+  CustomerID                     Int?      @map("CustomerID")
+  CVV2_Response                  String?   @map("CVV2_Response") @db.VarChar(10)
+  DV_CreditCardNumber            String?   @map("DV_CreditCardNumber") @db.VarChar(20)
+  GiftCardIDUsed                 String?   @map("GiftCardIDUsed") @db.VarChar(50)
+  GiftWrapNote                   String?   @map("GiftWrapNote") @db.VarChar(100)
+  InitiallyShippedDate           String?   @map("InitiallyShippedDate") @db.VarChar(30)
+  IsAGift                        String?   @map("IsAGift") @db.VarChar(1)
+  IsGTSOrder                     String?   @map("IsGTSOrder") @db.VarChar(1)
+  LastModBy                      Int?      @map("LastModBy")
+  LastModified                   String?   @map("LastModified") @db.VarChar(30)
+  Locked                         String?   @map("Locked") @db.VarChar(1)
+  MICR                           String?   @map("MICR") @db.VarChar(20)
+  Order_Comments                 String?   @map("Order_Comments") @db.Text
+  Order_Entry_System             String?   @map("Order_Entry_System") @db.VarChar(50)
+  OrderDate                      String?   @map("OrderDate") @db.VarChar(30)
+  InvoiceableOn                  DateTime? @map("InvoiceableOn")
+  OrderDateUtc                   String?   @map("OrderDateUtc") @db.VarChar(30)
+  OrderID_Third_Party            String?   @map("OrderID_Third_Party") @db.VarChar(50)
+  OrderID_Third_Party_Link       String?   @map("OrderID_Third_Party_Link") @db.Text
+  OrderNotes                     String?   @map("OrderNotes") @db.Text
+  OrderStatus                    String?   @map("OrderStatus") @db.VarChar(50)
+  PaymentAmount                  Float?    @map("PaymentAmount")
+  PaymentDeclined                String?   @map("PaymentDeclined") @db.VarChar(1)
+  PaymentMethodID                Int?      @map("PaymentMethodID")
+  PCIaaS_CardId                  String?   @map("PCIaaS_CardId") @db.VarChar(50)
+  PCIaaS_MaskedCardRef           String?   @map("PCIaaS_MaskedCardRef") @db.VarChar(50)
+  PONum                          String?   @map("PONum") @db.VarChar(50)
+  Printed                        String?   @map("Printed") @db.VarChar(1)
+  Processed_AutoEvents           String?   @map("Processed_AutoEvents") @db.VarChar(100)
+  RoutingNumber                  String?   @map("RoutingNumber") @db.VarChar(20)
+  SalesRep_CustomerID            Int?      @map("SalesRep_CustomerID")
+  SalesTax1                      Float?    @map("SalesTax1")
+  SalesTax2                      Float?    @map("SalesTax2")
+  SalesTax3                      Float?    @map("SalesTax3")
+  SalesTaxRate                   Float?    @map("SalesTaxRate")
+  SalesTaxRate1                  Float     @map("SalesTaxRate1") @default(0)
+  SalesTaxRate2                  Float     @map("SalesTaxRate2") @default(0)
+  SalesTaxRate3                  Float     @map("SalesTaxRate3") @default(0)
+  ShipAddress1                   String?   @map("ShipAddress1") @db.VarChar(100)
+  ShipAddress2                   String?   @map("ShipAddress2") @db.VarChar(100)
+  ShipCity                       String?   @map("ShipCity") @db.VarChar(50)
+  ShipCompanyName                String?   @map("ShipCompanyName") @db.VarChar(100)
+  ShipCountry                    String?   @map("ShipCountry") @db.VarChar(2)
+  ShipDate                       String?   @map("ShipDate") @db.VarChar(30)
+  ShipFaxNumber                  String?   @map("ShipFaxNumber") @db.VarChar(20)
+  ShipFirstName                  String?   @map("ShipFirstName") @db.VarChar(50)
+  ShipLastName                   String?   @map("ShipLastName") @db.VarChar(50)
+  Shipped                        String?   @map("Shipped") @db.VarChar(1)
+  ShipPhoneNumber                String?   @map("ShipPhoneNumber") @db.VarChar(20)
+  Shipping_Locked                String?   @map("Shipping_Locked") @db.VarChar(1)
+  ShippingMethodID               Int?      @map("ShippingMethodID")
+  ShipPostalCode                 String?   @map("ShipPostalCode") @db.VarChar(10)
+  ShipResidential                String?   @map("ShipResidential") @db.VarChar(1)
+  ShipState                      String?   @map("ShipState") @db.VarChar(50)
+  sOrderID                       String?   @map("sOrderID") @db.VarChar(50)
+  Stock_Priority                 Int?      @map("Stock_Priority")
+  Tax1_IgnoreNoTaxRules         String?   @map("Tax1_IgnoreNoTaxRules") @db.VarChar(1)
+  Tax1_Title                     String?   @map("Tax1_Title") @db.VarChar(50)
+  Tax2_IgnoreNoTaxRules         String?   @map("Tax2_IgnoreNoTaxRules") @db.VarChar(1)
+  Tax2_IncludePrevious           Int?      @map("Tax2_IncludePrevious")
+  Tax2_Title                     String?   @map("Tax2_Title") @db.VarChar(50)
+  Tax3_IgnoreNoTaxRules         String?   @map("Tax3_IgnoreNoTaxRules") @db.VarChar(1)
+  Tax3_IncludePrevious           Int?      @map("Tax3_IncludePrevious")
+  Tax3_Title                     String?   @map("Tax3_Title") @db.VarChar(50)
+  TaxRate_IsVat                  String?   @map("TaxRate_IsVat") @db.VarChar(1)
+  Total_Payment_Authorized       Float?    @map("Total_Payment_Authorized")
+  Total_Payment_Received         Float?    @map("Total_Payment_Received")
+  TotalShippingCost              Float?    @map("TotalShippingCost")
+  VendorID                       Int?      @map("VendorID")
+  pdfname                        String?   @map("pdfname") @db.VarChar(100)
+  IsCustomerNameShow             Boolean   @map("IsCustomerNameShow") @default(true)
+  IsCustomerEmailShow            Boolean   @map("IsCustomerEmailShow") @default(true)
+  QuoteNo                        Int?      @map("QuoteNo")
+  PrivateNotes                   String?   @map("PrivateNotes") @db.Text
+  Order_Type                     OrderType @map("Order_Type") @default(Customer)
+  UserId                         Int?      @map("UserId")
+  OrderSerials                   String?   @map("OrderSerials") @db.Text
+  OldOrder                       Boolean   @map("OldOrder") @default(false)
+  IsTaxExempt                    Boolean   @map("IsTaxExempt") @default(false)
+  TaxExemptionId                 Int?      @map("TaxExemptionId")
+  IsPayed                        Boolean   @map("IsPayed") @default(false)
+  ListPrice_Name                 String?   @map("ListPrice_Name") @db.Text
+  CurrentCustomerDiscount        Int       @map("CurrentCustomerDiscount") @default(0)
+  InsuranceValue                 Int       @map("InsuranceValue") @default(0)
+  IsFreeOrder                    Boolean   @map("IsFreeOrder") @default(false)
+  Incoterm                       String?   @map("Incoterm") @db.VarChar(50)
+  TrackingNo                     String?   @map("TrackingNo") @db.VarChar(50)
+  endUser_id                     Int?      @map("endUser_id")
+  endUserId                      BigInt?   @map("endUserId")
+  ShipEmailAddress               String?   @map("ShipEmailAddress") @db.VarChar(100)
+  order                          Order?    @relation(fields: [OrderID], references: [id])
+  modifiedBy                     User?     @relation("ModifiedBy", fields: [LastModBy], references: [id])
+  orderDetailsSnapshots          OrderDetailsSnapshots[] @relation("OrderSnapshotDetails")
   @@map("orders_snapshot")
 }
 
-
+model OrderDetailsSnapshots {
+  OrderDetailID                        Int       @id @default(autoincrement()) @map("OrderDetailID")
+  Additional_Handling_Indicator         String?   @map("Additional_Handling_Indicator") @db.VarChar(1)
+  Affiliate_Commissionable_Value        Float?    @map("Affiliate_Commissionable_Value")
+  AutoDropShip                         String?   @map("AutoDropShip") @db.VarChar(1)
+  CategoryID                           Int?      @map("CategoryID")
+  CouponCode                           String?   @map("CouponCode") @db.VarChar(50)
+  CustomLineItem                       String?   @map("CustomLineItem") @db.VarChar(100)
+  DiscountAutoID                       Int?      @map("DiscountAutoID")
+  DiscountType                         Int?      @map("DiscountType")
+  DiscountValue                        Float     @map("DiscountValue") @default(0)
+  DownloadFile                         String?   @map("DownloadFile") @db.VarChar(100)
+  Fixed_ShippingCost                   Float?    @map("Fixed_ShippingCost")
+  Fixed_ShippingCost_Outside_LocalRegion Float?  @map("Fixed_ShippingCost_Outside_LocalRegion")
+  FreeShippingItem                     String?   @map("FreeShippingItem") @db.VarChar(1)
+  GiftTrakNumber                       Int?      @map("GiftTrakNumber")
+  GiftWrap                             String?   @map("GiftWrap") @db.VarChar(1)
+  GiftWrapCost                         Float?    @map("GiftWrapCost")
+  GiftWrapNote                         String?   @map("GiftWrapNote") @db.VarChar(100)
+  Height                               Float?    @map("Height")
+  IsKitID                              String?   @map("IsKitID") @db.VarChar(1)
+  KitID                                String?   @map("KitID") @db.VarChar(50)
+  LastModBy                            Int?      @map("LastModBy")
+  LastModified                         String?   @map("LastModified") @db.VarChar(30)
+  Length                               Float?    @map("Length")
+  Locked                               String?   @map("Locked") @db.VarChar(1)
+  OnOrder_Qty                          Int?      @map("OnOrder_Qty")
+  OptionID                             Int?      @map("OptionID")
+  OptionIDs                            String?   @map("OptionIDs") @db.VarChar(100)
+  Options                              String?   @map("Options") @db.Text
+  OrderDetailID_Third_Party            String?   @map("OrderDetailID_Third_Party") @db.VarChar(50)
+  OrderDetailID_Third_Party_Link       String?   @map("OrderDetailID_Third_Party_Link") @db.Text
+  Order_Snapshot_ID                    Int       @map("Order_Snapshot_ID")
+  Oversized                            String?   @map("Oversized") @db.VarChar(1)
+  Package_Type                         String?   @map("Package_Type") @db.VarChar(50)
+  Product_Keys_Shipped                 String?   @map("Product_Keys_Shipped") @db.VarChar(100)
+  ProductCode                          String?   @map("ProductCode") @db.VarChar(50)
+  ProductID                            Int?      @map("ProductID")
+  ProductName                          String?   @map("ProductName") @db.VarChar(100)
+  ProductNote                          String?   @map("ProductNote") @db.VarChar(100)
+  ProductPrice                         Float?    @map("ProductPrice")
+  ProductWeight                        Float?    @map("ProductWeight")
+  QtyOnBackOrder                       Int?      @map("QtyOnBackOrder")
+  QtyOnHold                            Int?      @map("QtyOnHold")
+  QtyOnPackingSlip                     Int?      @map("QtyOnPackingSlip")
+  QtyShipped                           Int?      @map("QtyShipped")
+  Quantity                             Int?      @map("Quantity")
+  Returned                             String?   @map("Returned") @db.VarChar(1)
+  Returned_Date                        String?   @map("Returned_Date") @db.VarChar(30)
+  Reward_Points_Given_For_Purchase     Int?      @map("Reward_Points_Given_For_Purchase")
+  RMA_Number                           Int?      @map("RMA_Number")
+  RMAI_ID                              Int?      @map("RMAI_ID")
+  ShipDate                             String?   @map("ShipDate") @db.VarChar(30)
+  Shipped                              String?   @map("Shipped") @db.VarChar(1)
+  Ships_By_Itself                      String?   @map("Ships_By_Itself") @db.VarChar(1)
+  TaxableProduct                       String?   @map("TaxableProduct") @db.VarChar(1)
+  TotalPrice                           Float?    @map("TotalPrice")
+  VAT_Percentage                        Float?    @map("VAT_Percentage")
+  Vendor_Price                         Float?    @map("Vendor_Price")
+  Warehouses                           String?   @map("Warehouses") @db.VarChar(100)
+  Width                                Float?    @map("Width")
+  OrderDetails_Options                 String?   @map("OrderDetails_Options") @db.Text
+  Discription                          String?   @map("Discription") @db.Text
+  PrivateNotes                         String?   @map("PrivateNotes") @db.Text
+  ProductTax                           Float     @map("ProductTax") @default(0)
+  ProductSerials                       String?   @map("ProductSerials") @db.Text
+  isChild                              Boolean   @map("isChild") @default(false)
+  showOnShippingSlip                   Boolean   @map("showOnShippingSlip") @default(true)
+  parent                               String?   @map("parent") @db.VarChar(50)
+  parentName                           String?   @map("parentName") @db.VarChar(100)
+  displayOrder                         Int       @map("displayOrder") @default(0)
+  FreeShippingDiscount                 String?   @map("FreeShippingDiscount") @db.Text
+  NonShippable                         String?   @map("NonShippable") @db.Text
+  HarmonizedCode                       String?   @map("HarmonizedCode") @db.VarChar(34)
+  ExportControlClassificationNumber    String?   @map("ExportControlClassificationNumber") @db.VarChar(50)
+  UnitOfMeasure                        String?   @map("UnitOfMeasure") @db.VarChar(20)
+  CountryOfOrigin                      String?   @map("CountryOfOrigin") @db.VarChar(2)
+  ExportDescription                    String?   @map("ExportDescription") @db.Text
+  categoryIdOfOption                   String?   @map("categoryIdOfOption") @db.VarChar(50)
+  isCategoriesOption                   Boolean   @map("isCategoriesOption") @default(false)
+  Product_Subclass                     String?   @map("Product_Subclass") @db.VarChar(50)
+  orderSnapshot                        OrdersSnapshot? @relation("OrderSnapshotDetails", fields: [Order_Snapshot_ID], references: [id])
+  product                              Product?        @relation(fields: [ProductID], references: [productId])
+  @@map("order_details_snapshots")
+}
 
 model Order {
   id                             Int           @id
@@ -267,6 +485,7 @@ model Order {
   isAGift                        String?       @db.Text
   isGTSOrder                     String?       @db.Text
   lastModBy                      Int?      
+  orderBy                        Int?
   lastModified                   String?       @db.Text
   locked                         String?       @db.Text
   micr                           String?       @db.Text
@@ -331,7 +550,7 @@ model Order {
   isCustomerNameShow             Boolean       @default(true) 
   isCustomerEmailShow            Boolean       @default(true)
   quoteNo                        Int?                  
-  orderType                      String?        @default("Customer") 
+  orderType                      String?       @default("Customer") 
   userId                         Int?          
   orderSerials                   String?       @db.Text
   oldOrder                       Boolean       @default(false) 
@@ -355,7 +574,7 @@ model Order {
   tracking                       OrderTrackingNo[]
   quote                          Quote?
   customer                       Customer?     @relation("CustomerOrders", fields: [customerId], references: [id])
-  orderedBy                      User?         @relation("OrderedBy", fields: [lastModBy], references: [id], map: "orders_orderedBy_fkey")
+  orderedBy                      User?         @relation("OrderedBy", fields: [orderBy], references: [id], map: "orders_orderBy_fkey")
   modifiedBy                     User?         @relation("ModifiedBy", fields: [lastModBy], references: [id], map: "orders_lastModBy_fkey")
   shippedByUser                  User?         @relation("ShippedBy", fields: [shippedBy], references: [id])
   orderDetails                   OrderDetail[]
@@ -364,12 +583,8 @@ model Order {
   snapshots                      OrdersSnapshot[]
   productSerials                 ProductSerial[]
   tagTable                       TagTable[] @relation("TagTable")
-  
-
   @@map("orders")
 }
-
-
 
 model OrderDetail {
   id                                  Int      @id @default(autoincrement()) 
@@ -455,26 +670,105 @@ model OrderDetail {
   createdAt                           DateTime @default(now())
   order                               Order?   @relation(fields: [orderId], references: [id])
   product                             Product? @relation(fields: [productId], references: [productId])
-
   @@map("order_details")
 }
 
-
 model Quote {
-  id         Int      @id @default(autoincrement())
-  quoteNo    Int      @unique
-  isOrdered  Boolean  @default(false)
-  orderBy    Int?
-  orderId    Int?     @unique
-  quoteDate  DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  order      Order?   @relation(fields: [orderId], references: [id])
-  user       User?    @relation("OrderedBy", fields: [orderBy], references: [id])
-  files      AttachedFile[]
-
+  QuoteNo                          Int      @id @default(autoincrement())
+  QuoteDate                   String?
+  ValidTill                   String?
+  customerId                  Int?
+  billingAddress1             String?
+  billingAddress2             String?
+  billingCompanyName          String?
+  billingEmailAddress         String?
+  billingCity                 String?
+  billingCountry              String?
+  billingState                String
+  billingPostalCode           String?
+  billingPhoneNumber          String?
+  shipAddress1                String?
+  shipAddress2                String?
+  shipCompanyName             String?
+  shipCity                    String?
+  shipCountry                 String?
+  shipState                   String?
+  shipPhoneNumber             String?
+  shipPostalCode              String?
+  billingFirstName            String?
+  billingLastName             String?
+  totalShippingCost           Float?
+  shippingMethodId            Int?
+  insuranceValue              Float    @default(0.0)
+  salesTaxRate1               Float?
+  isTaxExempt                 Boolean?
+  quoteComments               String?
+  pdfname                     String?
+  customerCompany             String?
+  isCustomerNameShow          Boolean  @default(true)
+  isCustomerEmailShow         Boolean  @default(true)
+  isOrdered                   Boolean  @default(false)
+  orderBy                     Int?
+  orderId                     Int?     @unique
+  createdBy                   Int?
+  modBy                       Int?
+  modifiedOn                  String?
+  quoteNotes                  String?
+  selectedCustomerDiscount     Int      @default(0)
+  customerEmail               String?
+  isApproved                  Boolean  @default(false)
+  isExternal                  Boolean  @default(false)
+  shipEmailAddress            String?
+  shipLastName                String?
+  shipFirstName               String?
+  affiliateCommissionableValue Float    @default(0.0)
+  salesTax1                   Float    @default(0.0)
+  tax1Title                   String?
+  endUserId                   Int?
+  paymentAmount               Float?
+  customFieldCarrierAcctNo    String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  order                       Order?   @relation(fields: [orderId], references: [id])
+  user                        User?    @relation("OrderedBy", fields: [orderBy], references: [id])
+  files                       AttachedFile[]
+  modifiedBy                  User?         @relation("ModifiedBy", fields: [modBy], references: [id])
+  QuoteLineItem QuoteLineItem[] @relation("QuoteLineItems")
+  customer                    Customer? @relation("QuoteCustomer",fields: [customerId],references: [id])
+  tagTable                       TagTable[] @relation("QuoteTagTable")
   @@map("quotes")
 }
+
+model QuoteLineItem {
+  LineID                          Int      @id @default(autoincrement())
+  QuoteNo                         Int      @map("QuoteNo")
+  ProductCode                     String   @db.Text
+  Quantity                        Int?
+  ProductName                     String   @db.Text
+  ProductPrice                    Float?
+  DiscountValue                   Float?
+  TaxableProduct                  String   @default("N")
+  Discription                     String?  @db.Text
+  isChild                         Boolean  @default(false)
+  parent                          String?
+  parentName                      String?
+  display_order                   Int      @default(0)
+  displayOrder                    Int      @default(0)
+  categoryIdOfOption              String?
+  OptionID                        Int?
+  isCategoriesOption              Boolean  @default(false)
+  OptionIDs                       String?
+  Options                         String?
+  TotalPrice                      Float?
+  ProductWeight                   Float?
+  ProductID                       Int?
+  Custom_Field_CarrierAcctNo      String?
+  Product_Subclass                String?
+  quote                           Quote?   @relation("QuoteLineItems", fields: [QuoteNo], references: [QuoteNo])
+  product                         Product? @relation(fields: [ProductID], references: [productId])
+  @@map("quotelineitems")
+}
+
 model ProductSerial {
   id               Int      @id @default(autoincrement())
   productId        Int?    
@@ -490,34 +784,21 @@ model ProductSerial {
   groupId          Int?    
   product          Product? @relation(fields: [productId], references: [productId])
   order            Order?   @relation(fields: [orderId], references: [id])
-
   @@unique([serialNo])
   @@unique([serialNo, productId])
   @@map("product_serials")
 }
 
-enum ProductSerialStatus {
-  allocated
-  unAllocated
-  shipped
-}
-
-enum ProductSerialType {
-  products
-  groups
-}
-
 model TagTable {
   id        Int      @id @default(autoincrement())
-  tableId   Int  
+  tableId   Int ? 
   tableName String
-  tagId     Int
-  
+  tagId     Int?
+  quoteId   Int?
   createdAt DateTime @default(now())
   tag       Tag?     @relation("Tag", fields: [tagId], references: [id])
   Order     Order? @relation("TagTable",fields: [tableId],references: [id])
-  
-  
+  quote     Quote?  @relation("QuoteTagTable", fields: [quoteId],references: [QuoteNo])
   @@map("tag_tables")
 }
 
@@ -534,8 +815,6 @@ model Tag {
   color           String    @default("white")
   typeId          Int 
   tagTable        TagTable[] @relation("Tag")
- 
-
   @@map("tags")
 }
 
@@ -543,14 +822,8 @@ model ShippingMethod {
   id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
-
   @@map("shipping_methods")
 }
-
-
-
-
-
 
 model Product {
   productId                      Int      @id @default(autoincrement())
@@ -622,16 +895,15 @@ model Product {
   isMultiClassification          Boolean? @default(false) 
   createdBy                      String?  
   modifiedBy                     String?  
-
   details           ProductDetail[]
   productLogs       ProductLog[] 
   productClass      ProductClass?    @relation(fields: [productClassId], references: [id])
   productSubClass   ProductSubClass? @relation(fields: [productSubClassId], references: [id])
   ProductSerial ProductSerial[]
   OrderDetail OrderDetail[]
-
+  QuoteLineItem QuoteLineItem[]
+  orderDetailsSnapshots OrderDetailsSnapshots[]
   @@map("products")
-
 }
 
 model ProductDetail {
@@ -641,10 +913,8 @@ model ProductDetail {
   url             String
   isActive        Boolean  @default(true)
   createdAt       DateTime?
-
   product         Product  @relation(fields: [productId], references: [productId])
   images          Image[]  @relation("DetailImages")
-
   @@map("product_details")
 }
 
@@ -656,9 +926,7 @@ model Image {
   displayOrder Int      @default(0)
   createdAt    DateTime?
   isThumb      Boolean?
-
   productDetail ProductDetail? @relation("DetailImages", fields: [tableId], references: [productDetailId])
-
   @@map("images")
 }
 
@@ -666,7 +934,6 @@ model ProductClass {
   id           Int     @id @default(autoincrement())         
   name         String
   products     Product[]
-
   @@map("product_class")
 }
 
@@ -674,7 +941,6 @@ model ProductSubClass {
   id           Int     @id @default(autoincrement())         
   name         String
   products     Product[]
-
   @@map("product_subclass")
 }
 
@@ -686,10 +952,8 @@ model ProductLog {
   userId     Int?     
   oldData    Json?  
   newData    Json?  
-
   user       User?     @relation(fields: [userId], references: [id])
   product    Product?  @relation(fields: [productId], references: [productId])
-
   @@map("products_log") 
 }
 
@@ -699,6 +963,5 @@ model ProductCategory {
   productId  Int
   createdAt  DateTime @default(now())
   storeCat   Int      @default(0)
-
   @@map("product_category") 
 }

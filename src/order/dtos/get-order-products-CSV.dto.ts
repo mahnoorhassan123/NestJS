@@ -19,6 +19,10 @@ export class GetOrdersProductCSVDto {
   @IsOptional()
   search?: string;
 
+  @IsBoolean()
+  @IsOptional()
+  isSmallReport: boolean;
+
   @IsString()
   @IsOptional()
   id?: string;

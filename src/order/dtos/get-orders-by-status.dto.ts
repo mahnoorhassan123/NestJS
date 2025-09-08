@@ -1,114 +1,60 @@
+import { Type } from 'class-transformer';
 import {
-  IsString,
-  IsOptional,
-  IsInt,
-  IsBoolean,
   IsArray,
-  IsDateString,
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
 } from 'class-validator';
+import { DatesDto } from './search-by-status.dto';
 
 export class GetOrdersByStatusDto {
-  @IsInt()
   @IsOptional()
-  page?: number;
-
-  @IsInt()
-  @IsOptional()
-  size?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  isGlobal?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
-  isIndividual?: boolean;
+  @ValidateNested()
+  @Type(() => DatesDto)
+  dates?: DatesDto;
 
   @IsString()
-  @IsOptional()
-  search?: string;
+  status: string;
 
   @IsString()
-  @IsOptional()
-  id?: string;
+  country: string;
 
   @IsString()
-  @IsOptional()
-  lastName?: string;
+  serialNo: string;
 
   @IsString()
-  @IsOptional()
-  email?: string;
-
-  @IsString()
-  @IsOptional()
-  country?: string;
-
-  @IsString()
-  @IsOptional()
-  createdBy?: string;
-
-  @IsString()
-  @IsOptional()
-  orderStatus?: string;
-
-  @IsString()
-  @IsOptional()
-  total?: string;
-
-  @IsString()
-  @IsOptional()
-  company?: string;
-
-  @IsDateString()
-  @IsOptional()
-  orderDate?: string;
-
-  @IsDateString()
-  @IsOptional()
-  shipDate?: string;
-
-  @IsString()
-  @IsOptional()
-  shippedBy?: string;
-
-  @IsString()
-  @IsOptional()
-  serialNo?: string;
-
-  @IsDateString()
-  @IsOptional()
-  datesFrom?: string;
-
-  @IsDateString()
-  @IsOptional()
-  datesTo?: string;
-
-  @IsString()
-  @IsOptional()
-  status?: string;
-
-  @IsString()
-  @IsOptional()
-  type?: string;
+  type: string;
 
   @IsArray()
-  @IsOptional()
-  productCode?: number[];
+  @IsString({ each: true })
+  tags: string[];
+
+  @IsString()
+  tag_type: string;
 
   @IsArray()
-  @IsOptional()
-  tags?: number[];
+  @IsNumber({}, { each: true })
+  productCode: number[];
 
-  @IsString()
   @IsOptional()
-  tag_type?: string;
+  @IsBoolean()
+  all?: boolean;
 
-  @IsString()
   @IsOptional()
-  sortColumn?: string;
+  @IsString()
+  orderDateFrom?: string;
 
-  @IsString()
   @IsOptional()
-  sortOrder?: string;
+  @IsString()
+  orderDateTo?: string;
+
+  @IsOptional()
+  @IsString()
+  shipDateFrom?: string;
+
+  @IsOptional()
+  @IsString()
+  shipDateTo?: string;
 }
